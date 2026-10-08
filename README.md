@@ -186,13 +186,13 @@ BLEU는 논문과 같이 **개별 n-gram BLEU**(brevity penalty 포함)입니다
 * **고 SNR에서는 기존 방식(특히 Turbo)이 더 좋음** — 논문도 "SNR > 12 dB에서는 전통적 방식이
   DNN 기반보다 낫다"고 보고합니다. 본 구현의 DeepSC 포화값(AWGN BLEU-1 0.87)은 논문(≈0.92)보다
   낮은데, 학습 문장 수가 논문의 약 0.6%에 불과해 test에만 나오는 단어(test 토큰의 2%)와 희귀어를
-  복원하지 못하기 때문입니다(아래 3.6).
+  복원하지 못하기 때문입니다(아래 3.7).
 * 심볼 수: DeepSC(단어당 8 복소 심볼 → 문장당 162개)는 RS 방식보다 많고 Turbo 방식보다 적은
-  심볼을 씁니다. 같은 심볼 수 비교는 3.3의 "단어당 4 심볼(≈81개)" 결과를 참고하세요.
+  심볼을 씁니다. RS보다 적은 심볼을 쓰는 경우는 3.3의 "단어당 4 심볼(≈81개)" 결과를 참고하세요.
 * Rayleigh에서 본 구현의 Turbo 베이스라인은 논문 그림보다 훨씬 좋습니다. 본 구현은 문장 단위
   block fading + 완전 CSI + 정확한 soft LLR(잡음분산 `σ²/|h|²`)을 사용하므로, 깊은 페이딩이 걸린
-  문장만 실패하기 때문입니다(논문의 베이스라인 구현 세부는 공개되지 않음). 그럼에도 **9 dB 이하
-  에서는 DeepSC가 모든 베이스라인보다 우수**합니다.
+  문장만 실패하기 때문입니다(논문의 베이스라인 구현 세부는 공개되지 않음). 그럼에도 **BLEU-1 기준 9 dB 이하,
+  BLEU-4 기준 3 dB 이하에서는 DeepSC가 모든 베이스라인보다 우수**합니다.
 
 ### 3.2 복원 문장 예시 (Table II 재현, Rayleigh, SNR = 18 dB)
 
@@ -210,11 +210,45 @@ communication on coherence , really , serve the strategic development policy ."*
 
 ### 3.3 단어당 심볼 수의 영향 (Fig. 8)
 
-SYM4_SECTION
+Fig. 8처럼 단어당 복소 심볼 수 N을 줄이면 BLEU가 떨어집니다. 단어당 4 심볼(문장당 평균 **81개**)은
+가장 적은 심볼을 쓰는 RS 베이스라인(106–115개)보다도 적지만, 0–18 dB 전 구간에서 RS 방식보다 우수합니다.
+
+| AWGN BLEU-1 / BLEU-4 | 심볼/문장 | 0 dB | 3 dB | 6 dB | 9 dB | 12 dB | 15 dB | 18 dB |
+|---|---|---|---|---|---|---|---|---|
+| DeepSC, 8 심볼/단어 | 162 | 0.61 / 0.17 | 0.79 / 0.43 | 0.85 / 0.54 | 0.86 / 0.58 | 0.87 / 0.59 | 0.87 / 0.60 | 0.87 / 0.60 |
+| DeepSC, 4 심볼/단어 | 81 | 0.39 / 0.03 | 0.59 / 0.15 | 0.73 / 0.33 | 0.79 / 0.42 | 0.81 / 0.46 | 0.82 / 0.48 | 0.82 / 0.49 |
+| Huffman + RS(42,30) | 106 | 0.00 / 0.00 | 0.00 / 0.00 | 0.01 / 0.00 | 0.01 / 0.00 | 0.03 / 0.00 | 0.11 / 0.00 | 0.59 / 0.40 |
+
+![symbols per word](results/fig8_symbols_per_word.png)
 
 ### 3.4 Mutual information 손실의 효과 (Fig. 9, 10)
 
-MI_SECTION
+같은 구조·같은 seed로 λ = 0.01(MI 항 사용)과 λ = 0(CE만 사용) 모델을 각각 40 epoch 학습했습니다.
+MI는 학습이 끝난 송신기를 고정하고 SNR마다 새 MINE을 1,500 step 학습해 eq. (9)의 하한으로 추정했습니다.
+
+| AWGN | 0 dB | 3 dB | 6 dB | 9 dB | 12 dB | 15 dB | 18 dB |
+|---|---|---|---|---|---|---|---|
+| I(X;Y) with MI term [bit/심볼] | 0.99 | 1.57 | 2.29 | 3.11 | 4.00 | 4.85 | 5.67 |
+| I(X;Y) without MI term | 0.99 | 1.56 | 2.27 | 3.07 | 3.94 | 4.77 | 5.61 |
+| Gaussian 입력 용량 log2(1+SNR) | 1.00 | 1.58 | 2.32 | 3.16 | 4.08 | 5.03 | 6.00 |
+| BLEU-1 with MI term | **0.61** | **0.79** | **0.85** | **0.86** | **0.87** | **0.87** | **0.87** |
+| BLEU-1 without MI term | 0.59 | 0.77 | 0.83 | 0.84 | 0.85 | 0.85 | 0.85 |
+| BLEU-4 with MI term | **0.17** | **0.43** | **0.54** | **0.58** | **0.59** | **0.60** | **0.60** |
+| BLEU-4 without MI term | 0.15 | 0.38 | 0.49 | 0.53 | 0.54 | 0.55 | 0.55 |
+
+![MI](results/fig9_mutual_information.png)
+![MI ablation BLEU](results/fig_mi_ablation_bleu.png)
+![MI during training](results/fig10_mi_during_training.png)
+
+(마지막 그림: 학습 중 phase 1에서 추정한 MI 하한의 epoch 평균. 배치마다 SNR이 무작위이므로 절대값보다 추세를 보는 용도입니다.)
+
+* MI 항을 넣은 모델이 모든 SNR에서 MI가 조금 더 높고(최대 +0.09 bit/심볼, 15 dB), BLEU-1은 약 +0.02,
+  BLEU-4는 +0.02–0.05 높습니다. 방향은 논문과 같습니다.
+* 다만 **차이는 논문 Fig. 9(같은 MI를 얻는 데 SNR 약 5 dB 차이)보다 훨씬 작습니다.** 본 구현에서는 MI 항이
+  없어도 송신 심볼 분포가 이미 Gaussian 용량에 근접하기 때문입니다. 본 구현은 심볼 출력층을 선형으로
+  두었는데(2.3절), Table I처럼 ReLU를 쓰면 심볼이 음이 아닌 값으로 제한되어 MI가 크게 떨어지고, 이때
+  MI 항의 효과가 커질 것으로 추정합니다(검증하지 않은 가설). 단일 seed라 +0.02 수준의 BLEU 차이는
+  seed 간 편차 안에 들 수도 있습니다.
 
 ### 3.5 Transfer learning (Algorithm 4, Fig. 13)
 
@@ -226,11 +260,12 @@ AWGN에서 학습된 모델을 불러와 **semantic encoder/decoder를 고정**�
 | Rayleigh | TL (AWGN 모델에서) | **1.06** | 1.00 | 0.51 / 0.72 / 0.81 / **0.85** (0 / 6 / 12 / 18 dB) |
 | Rayleigh | 처음부터 (12 epoch) | 6.83 | 2.40 | – |
 | Rayleigh | 처음부터 (**40 epoch**) | 6.83 | 1.02 (40 ep) | 0.49 / 0.67 / 0.76 / 0.80 |
-| Erasure (p = 0.1) | TL (AWGN 모델에서) | **0.55** | 0.69 | ERASURE_TL (p = 0.05 / 0.1 / 0.15 / 0.2, 12 dB) |
+| Erasure (p = 0.1) | TL (AWGN 모델에서) | **0.55** | 0.69 | **0.83 / 0.82 / 0.79 / 0.77** (p = 0.05 / 0.1 / 0.15 / 0.2, 12 dB) |
 | Erasure (p = 0.1) | 처음부터 (12 epoch) | 6.84 | 2.13 | 0.65 / 0.64 / 0.63 / 0.61 (p = 0.05 / 0.1 / 0.15 / 0.2, 12 dB) |
 
 ![TL Rayleigh](results/fig13_tl_rayleigh_loss.png)
 ![TL erasure](results/fig13_tl_erasure_loss.png)
+![TL Rayleigh BLEU](results/fig13_tl_rayleigh_bleu.png)
 ![TL erasure BLEU](results/fig13_tl_erasure_bleu.png)
 
 * 논문 Fig. 13(a),(b)처럼 사전학습 모델을 쓰면 **수렴에 필요한 epoch이 크게 줄어듭니다.** 첫 epoch
