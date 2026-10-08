@@ -33,8 +33,9 @@ class PositionalEncoding(nn.Module):
 
 class DeepSC(nn.Module):
     def __init__(self, vocab_size, pad_idx, d_model=128, n_heads=8, n_layers=3, d_ff=512,
-                 symbols_per_word=8, dropout=0.1):
+                 symbols_per_word=8, dropout=0.1, rx_positional=True, norm_first=False):
         super().__init__()
+        self.rx_positional = rx_positional
         self.pad_idx = pad_idx
         self.d_model = d_model
         self.n_sym = symbols_per_word
@@ -42,8 +43,10 @@ class DeepSC(nn.Module):
         # ---- transmitter: semantic encoder S_beta ----
         self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx)
         self.pos = PositionalEncoding(d_model, dropout)
-        enc = nn.TransformerEncoderLayer(d_model, n_heads, d_ff, dropout, batch_first=True)
-        self.semantic_encoder = nn.TransformerEncoder(enc, n_layers, enable_nested_tensor=False)
+        enc = nn.TransformerEncoderLayer(d_model, n_heads, d_ff, dropout, batch_first=True,
+                                         norm_first=norm_first)
+        self.semantic_encoder = nn.TransformerEncoder(
+            enc, n_layers, norm=nn.LayerNorm(d_model) if norm_first else None, enable_nested_tensor=False)
         # ---- transmitter: channel encoder C_alpha (Dense 256 ReLU, Dense 2N) ----
         self.channel_encoder = nn.Sequential(
             nn.Linear(d_model, 256), nn.ReLU(), nn.Linear(256, 2 * symbols_per_word))
@@ -52,8 +55,10 @@ class DeepSC(nn.Module):
             nn.Linear(2 * symbols_per_word, 256), nn.ReLU(), nn.Linear(256, d_model), nn.ReLU())
         # ---- receiver: semantic decoder S_chi^-1 ----
         self.tgt_embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx)
-        dec = nn.TransformerDecoderLayer(d_model, n_heads, d_ff, dropout, batch_first=True)
-        self.semantic_decoder = nn.TransformerDecoder(dec, n_layers)
+        dec = nn.TransformerDecoderLayer(d_model, n_heads, d_ff, dropout, batch_first=True,
+                                         norm_first=norm_first)
+        self.semantic_decoder = nn.TransformerDecoder(
+            dec, n_layers, norm=nn.LayerNorm(d_model) if norm_first else None)
         self.prediction = nn.Linear(d_model, vocab_size)
 
     # ------------------------------------------------------------------ #
@@ -81,7 +86,10 @@ class DeepSC(nn.Module):
         """Channel decoder: complex symbols (B, L*N) -> M_hat (B, L, V)."""
         b = y.shape[0]
         z = torch.stack([y.real, y.imag], -1).reshape(b, -1, 2 * self.n_sym)
-        return self.channel_decoder(z)
+        m = self.channel_decoder(z)
+        # The receiver knows which word slot every block of N symbols belongs to,
+        # so the slot index is re-injected for free instead of being transmitted.
+        return m + self.pos.pe[:, : m.size(1)] if self.rx_positional else m
 
     def decode_step(self, memory, src_pad_mask, tgt_in):
         t = tgt_in.size(1)

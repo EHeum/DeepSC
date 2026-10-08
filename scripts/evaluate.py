@@ -32,6 +32,7 @@ def main():
     if a.n_test:
         test = test[: a.n_test]
     model, _, ck = load_checkpoint(a.ckpt, vocab)
+    model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     ch = a.channel or ck["cfg"]["channel"]
     kw = dict(ck["cfg"].get("channel_kwargs", {})) if ch == ck["cfg"]["channel"] else {}
     if a.erasure_p is not None:

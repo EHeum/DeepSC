@@ -16,7 +16,8 @@ from .models import MINE, DeepSC, complex_pairs, mi_lower_bound
 def build_model(vocab, cfg):
     return DeepSC(len(vocab), vocab.pad, d_model=cfg.get("d_model", 128), n_heads=cfg.get("n_heads", 8),
                   n_layers=cfg.get("n_layers", 3), d_ff=cfg.get("d_ff", 512),
-                  symbols_per_word=cfg.get("symbols_per_word", 8), dropout=cfg.get("dropout", 0.1))
+                  symbols_per_word=cfg.get("symbols_per_word", 8), dropout=cfg.get("dropout", 0.1),
+                  rx_positional=cfg.get("rx_positional", True), norm_first=cfg.get("norm_first", False))
 
 
 def save_checkpoint(path, model, mine, cfg, history):

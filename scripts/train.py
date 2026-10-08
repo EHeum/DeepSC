@@ -24,12 +24,13 @@ def main():
     ap.add_argument("--snr-max", type=float, default=18.0)
     ap.add_argument("--eval-snr", type=float, default=6.0)
     ap.add_argument("--epochs", type=int, default=40)
-    ap.add_argument("--batch-size", type=int, default=128)
-    ap.add_argument("--lr", type=float, default=5e-4)
+    ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--mine-lr", type=float, default=1e-3)
     ap.add_argument("--mi-lambda", type=float, default=0.01, help="lambda of eq. (14); 0 = no MI term")
-    ap.add_argument("--warmup-steps", type=int, default=400)
+    ap.add_argument("--warmup-steps", type=int, default=200)
     ap.add_argument("--symbols-per-word", type=int, default=8)
+    ap.add_argument("--no-rx-pos", action="store_true", help="do not add positional encoding at the receiver")
     ap.add_argument("--init", default=None, help="pre-trained checkpoint (transfer learning)")
     ap.add_argument("--freeze", default="none", choices=["none", "semantic", "channel"])
     ap.add_argument("--unfreeze-epoch", type=int, default=0)
@@ -53,19 +54,22 @@ def main():
            "eval_snr": a.eval_snr, "epochs": a.epochs, "batch_size": a.batch_size, "lr": a.lr,
            "mine_lr": a.mine_lr, "mi_lambda": a.mi_lambda, "warmup_steps": a.warmup_steps,
            "symbols_per_word": a.symbols_per_word, "freeze": a.freeze, "unfreeze_epoch": a.unfreeze_epoch,
-           "init": a.init, "seed": a.seed}
+           "init": a.init, "seed": a.seed, "rx_positional": not a.no_rx_pos}
     if a.init:
         model, mine, ck = load_checkpoint(a.init, vocab)
         cfg["symbols_per_word"] = ck["cfg"]["symbols_per_word"]
+        cfg["rx_positional"] = ck["cfg"].get("rx_positional", True)
     else:
         model, mine = build_model(vocab, cfg), MINE()
+    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model, mine = model.to(dev), mine.to(dev)
     print(json.dumps(cfg))
     print(f"vocab={len(vocab)} train={len(train_s)} test={len(test_s)} "
           f"params={sum(p.numel() for p in model.parameters()):,}")
 
     history = train(model, mine, train_s, test_s, vocab, cfg, log=lambda s: print(s, flush=True))
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    save_checkpoint(a.out, model, mine, cfg, history)
+    save_checkpoint(a.out, model.cpu(), mine.cpu(), cfg, history)
     with open(os.path.splitext(a.out)[0] + "_history.json", "w") as f:
         json.dump({"cfg": cfg, "history": history}, f, indent=1)
 

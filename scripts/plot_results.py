@@ -35,9 +35,9 @@ def fig_bleu_vs_snr():
         curves = []
         ds = load(f"deepsc_{ch}.json")
         if ds:
-            curves.append(("DeepSC", ds["bleu"]))
+            curves.append((f"DeepSC ({ds['symbols_per_sentence']:.0f} sym/sent)", ds["bleu"]))
         for name, v in base.get(ch, {}).items():
-            curves.append((name, v["bleu"]))
+            curves.append((f"{name} ({v['symbols_per_sentence']:.0f} sym/sent)", v["bleu"]))
         if not curves:
             continue
         fig, axes = plt.subplots(1, 4, figsize=(14, 3.6), sharey=True)
@@ -50,9 +50,10 @@ def fig_bleu_vs_snr():
             ax.set_ylim(-0.02, 1.02)
             ax.set_xticks([0, 3, 6, 9, 12, 15, 18])
         axes[0].set_ylabel("BLEU score")
-        axes[0].legend(loc="center right", fontsize=8)
+        h, lab = axes[0].get_legend_handles_labels()
+        fig.legend(h, lab, loc="lower center", ncol=len(curves), fontsize=8.5)
         fig.suptitle(f"BLEU vs SNR - {'AWGN' if ch == 'awgn' else 'Rayleigh fading'} channel")
-        fig.tight_layout()
+        fig.tight_layout(rect=(0, 0.08, 1, 1))
         fig.savefig(os.path.join(R, f"fig6_bleu_{ch}.png"), dpi=130)
         plt.close(fig)
 
@@ -112,7 +113,32 @@ def fig_simple_bleu(fname, runs, title):
     plt.close(fig)
 
 
+def fig_erasure():
+    ps = ["0.05", "0.1", "0.15", "0.2"]
+    fig, ax = plt.subplots(figsize=(5.2, 3.8))
+    drawn = False
+    for i, (n, tag) in enumerate([("with TL (from AWGN model)", "erasure_tl"), ("without TL (from scratch)", "erasure")]):
+        ds = [load(f"deepsc_{tag}_p{p}.json") for p in ps]
+        if not all(ds):
+            continue
+        ax.plot([float(p) for p in ps], [d["bleu"]["12.0"]["1"] for d in ds], color=SERIES[i],
+                marker=MARKERS[i], label=n)
+        drawn = True
+    if not drawn:
+        plt.close(fig)
+        return
+    ax.set_xlabel("Erasure (dropout) rate")
+    ax.set_ylabel("BLEU (1-gram), SNR = 12 dB")
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_title("Erasure channel after 12 epochs")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(os.path.join(R, "fig13_tl_erasure_bleu.png"), dpi=130)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
+    fig_erasure()
     fig_bleu_vs_snr()
     fig_mi()
     fig_training_curves("fig10_mi_during_training.png",
@@ -120,7 +146,7 @@ if __name__ == "__main__":
                          ("without MI term", "deepsc_awgn_nomi_history.json")],
                         "MI estimate during training (AWGN)", key="mi_bits", ylabel="I(X;Y) (bit / symbol)")
     fig_training_curves("fig13_tl_rayleigh_loss.png",
-                        [("with TL (from AWGN model)", "deepsc_rayleigh_tl_history.json"),
+                        [("with TL (from AWGN model, 12 epochs)", "deepsc_rayleigh_tl_history.json"),
                          ("without TL (from scratch)", "deepsc_rayleigh_history.json")],
                         "Transfer learning: re-training for Rayleigh")
     fig_training_curves("fig13_tl_erasure_loss.png",
@@ -135,6 +161,6 @@ if __name__ == "__main__":
                     [("with MI term", "deepsc_awgn.json"), ("without MI term", "deepsc_awgn_nomi.json")],
                     "DeepSC (AWGN): effect of the MI loss")
     fig_simple_bleu("fig13_tl_rayleigh_bleu.png",
-                    [("with TL", "deepsc_rayleigh_tl.json"), ("without TL", "deepsc_rayleigh.json")],
+                    [("with TL (12 epochs)", "deepsc_rayleigh_tl.json"), ("without TL (40 epochs from scratch)", "deepsc_rayleigh.json")],
                     "Transfer learning (Rayleigh)")
     print("figures written to", R)

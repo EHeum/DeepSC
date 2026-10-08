@@ -20,7 +20,7 @@ from deepsc.models import MINE, complex_pairs, mi_lower_bound  # noqa: E402
 
 
 def estimate(model, batches, channel, snr, steps, lr, kw):
-    mine = MINE()
+    mine = MINE().to(batches[0].device)
     opt = torch.optim.Adam(mine.parameters(), lr=lr)
     vals = []
     for i in range(steps):
@@ -54,12 +54,15 @@ def main():
         torch.set_num_threads(a.threads)
     _, test, vocab = load_corpus(a.data)
     ds = SentenceDataset(test, vocab)
+    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     batches = [ds.collate([ds[j] for j in range(i, min(i + 128, len(ds)))]) for i in range(0, len(ds), 128)]
+    batches = [b.to(dev) for b in batches]
     snrs = [float(s) for s in a.snrs.split(",")]
     res = {"snrs": snrs, "gaussian_capacity": [math.log2(1 + 10 ** (s / 10)) for s in snrs]}
     for item in a.ckpts.split(","):
         name, path = item.split("=")
         model, _, _ = load_checkpoint(path, vocab)
+        model = model.to(dev)
         model.eval()
         res[name] = []
         for snr in snrs:
