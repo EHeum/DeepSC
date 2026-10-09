@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 
 from .channels import apply_channel, power_normalize
+from .constellation import ConstellationMapper
 
 
 class PositionalEncoding(nn.Module):
@@ -33,8 +34,12 @@ class PositionalEncoding(nn.Module):
 
 class DeepSC(nn.Module):
     def __init__(self, vocab_size, pad_idx, d_model=128, n_heads=8, n_layers=3, d_ff=512,
-                 symbols_per_word=8, dropout=0.1, rx_positional=True, norm_first=False):
+                 symbols_per_word=8, dropout=0.1, rx_positional=True, norm_first=False,
+                 constellation=None, quant_temp=0.5, quant_ste="soft", rx_hard=False):
         super().__init__()
+        # digital (constellation constrained) channel input, DeepJSCC-Q style; None = analog DeepSC
+        self.mapper = ConstellationMapper(constellation, quant_temp, quant_ste) if constellation else None
+        self.rx_hard = rx_hard  # hard symbol decisions at the receiver (needs a constellation)
         self.rx_positional = rx_positional
         self.pad_idx = pad_idx
         self.d_model = d_model
@@ -80,7 +85,15 @@ class DeepSC(nn.Module):
         b, l, _ = z.shape
         x = torch.complex(z[..., 0::2], z[..., 1::2]).reshape(b, l * self.n_sym)
         sym_mask = (~pad_mask).repeat_interleave(self.n_sym, dim=1)
-        return power_normalize(x, sym_mask), sym_mask
+        x = power_normalize(x, sym_mask)
+        if self.mapper is not None:
+            x = self.mapper(x) * sym_mask
+        return x, sym_mask
+
+    def detect(self, y):
+        if self.mapper is None or not self.rx_hard:
+            return y
+        return y + (self.mapper.detect(y) - y).detach()  # straight-through when training
 
     def receive(self, y, src_pad_mask):
         """Channel decoder: complex symbols (B, L*N) -> M_hat (B, L, V)."""
@@ -102,7 +115,7 @@ class DeepSC(nn.Module):
 
     def forward(self, src, tgt_in, channel="awgn", snr_db=10.0, **ch_kw):
         x, sym_mask = self.transmit(src)
-        y = apply_channel(channel, x, snr_db, **ch_kw) * sym_mask
+        y = self.detect(apply_channel(channel, x, snr_db, **ch_kw)) * sym_mask
         pad_mask = src.eq(self.pad_idx)
         memory = self.receive(y, pad_mask)
         logits = self.decode_step(memory, pad_mask, tgt_in)
@@ -111,7 +124,7 @@ class DeepSC(nn.Module):
     @torch.no_grad()
     def greedy_decode(self, src, start_idx, end_idx, channel="awgn", snr_db=10.0, max_len=None, **ch_kw):
         x, sym_mask = self.transmit(src)
-        y = apply_channel(channel, x, snr_db, **ch_kw) * sym_mask
+        y = self.detect(apply_channel(channel, x, snr_db, **ch_kw)) * sym_mask
         pad_mask = src.eq(self.pad_idx)
         memory = self.receive(y, pad_mask)
         max_len = max_len or src.size(1) + 2

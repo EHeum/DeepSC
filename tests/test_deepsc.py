@@ -97,3 +97,33 @@ def test_traditional_high_snr_error_free():
         s = TraditionalSystem(HuffmanCoder(SENTS), code, 64, seed=0)
         out, _ = s.transmit(SENTS, 30.0, "awgn")
         assert out == SENTS
+
+
+def test_constellation_mapper_outputs_exact_points_and_has_gradient():
+    from deepsc.constellation import ConstellationMapper
+    for name in ("qam4", "qam16", "qam64", "psk8"):
+        m = ConstellationMapper(name)
+        assert abs((m.points.abs() ** 2).mean().item() - 1) < 1e-5
+        z = torch.complex(torch.randn(4, 50), torch.randn(4, 50)).requires_grad_()
+        for train in (True, False):
+            m.train(train)
+            x = m(z)
+            gap = (x.detach()[..., None] - m.points).abs().min(-1).values
+            assert gap.max() < 1e-5  # always on the constellation
+        m.train()
+        m(z).real.sum().backward()
+        assert z.grad.abs().sum() > 0
+
+
+def test_digital_deepsc_and_analog_checkpoint_compatible():
+    v = Vocab.build(SENTS)
+    ds = SentenceDataset(SENTS, v)
+    src = ds.collate([ds[i] for i in range(3)])
+    analog = DeepSC(len(v), v.pad)
+    digital = DeepSC(len(v), v.pad, constellation="qam16", rx_hard=True)
+    digital.load_state_dict(analog.state_dict())  # analog weights initialise the digital model
+    digital.eval()
+    x, mask = digital.transmit(src)
+    assert ((x[mask][:, None] - digital.mapper.points).abs().min(-1).values < 1e-5).all()
+    out = digital.greedy_decode(src, v.start, v.end, "awgn", 10.0)
+    assert out.size(0) == 3

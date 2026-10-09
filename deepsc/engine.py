@@ -17,7 +17,9 @@ def build_model(vocab, cfg):
     return DeepSC(len(vocab), vocab.pad, d_model=cfg.get("d_model", 128), n_heads=cfg.get("n_heads", 8),
                   n_layers=cfg.get("n_layers", 3), d_ff=cfg.get("d_ff", 512),
                   symbols_per_word=cfg.get("symbols_per_word", 8), dropout=cfg.get("dropout", 0.1),
-                  rx_positional=cfg.get("rx_positional", True), norm_first=cfg.get("norm_first", False))
+                  rx_positional=cfg.get("rx_positional", True), norm_first=cfg.get("norm_first", False),
+                  constellation=cfg.get("constellation"), quant_temp=cfg.get("quant_temp", 0.5),
+                  quant_ste=cfg.get("quant_ste", "soft"), rx_hard=cfg.get("rx_hard", False))
 
 
 def save_checkpoint(path, model, mine, cfg, history):
@@ -83,7 +85,7 @@ def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
             # ---- phase 1: train the MI estimation model T (Alg. 2) ----
             with torch.no_grad():
                 x, mask = model.transmit(src)
-                y = apply_channel(ch, x, snr, **kw) * mask
+                y = model.detect(apply_channel(ch, x, snr, **kw)) * mask
             xs, ys = complex_pairs(x, y, mask)
             lb = mi_lower_bound(mine, xs, ys)
             opt_mine.zero_grad()

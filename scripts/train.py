@@ -10,7 +10,7 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from deepsc.data import load_corpus  # noqa: E402
-from deepsc.engine import build_model, load_checkpoint, save_checkpoint, train  # noqa: E402
+from deepsc.engine import build_model, save_checkpoint, train  # noqa: E402
 from deepsc.models import MINE  # noqa: E402
 
 
@@ -31,6 +31,12 @@ def main():
     ap.add_argument("--warmup-steps", type=int, default=200)
     ap.add_argument("--symbols-per-word", type=int, default=8)
     ap.add_argument("--no-rx-pos", action="store_true", help="do not add positional encoding at the receiver")
+    ap.add_argument("--constellation", default=None,
+                    help="digital channel input, e.g. qam4 / qam16 / qam64 / psk8 (default: analog)")
+    ap.add_argument("--quant-temp", type=float, default=0.5, help="soft-quantiser temperature (units of d_min^2)")
+    ap.add_argument("--quant-ste", default="soft", choices=["soft", "identity"],
+                    help="backward pass of the quantiser: soft assignment (DeepJSCC-Q) or identity")
+    ap.add_argument("--rx-hard", action="store_true", help="hard symbol decisions at the receiver")
     ap.add_argument("--init", default=None, help="pre-trained checkpoint (transfer learning)")
     ap.add_argument("--freeze", default="none", choices=["none", "semantic", "channel"])
     ap.add_argument("--unfreeze-epoch", type=int, default=0)
@@ -54,11 +60,17 @@ def main():
            "eval_snr": a.eval_snr, "epochs": a.epochs, "batch_size": a.batch_size, "lr": a.lr,
            "mine_lr": a.mine_lr, "mi_lambda": a.mi_lambda, "warmup_steps": a.warmup_steps,
            "symbols_per_word": a.symbols_per_word, "freeze": a.freeze, "unfreeze_epoch": a.unfreeze_epoch,
-           "init": a.init, "seed": a.seed, "rx_positional": not a.no_rx_pos}
+           "init": a.init, "seed": a.seed, "rx_positional": not a.no_rx_pos,
+           "constellation": a.constellation, "quant_temp": a.quant_temp, "quant_ste": a.quant_ste,
+           "rx_hard": a.rx_hard}
     if a.init:
-        model, mine, ck = load_checkpoint(a.init, vocab)
+        ck = torch.load(a.init, map_location="cpu")
         cfg["symbols_per_word"] = ck["cfg"]["symbols_per_word"]
         cfg["rx_positional"] = ck["cfg"].get("rx_positional", True)
+        # the architecture may change (e.g. analog -> constellation); the weights are identical
+        model, mine = build_model(vocab, cfg), MINE()
+        model.load_state_dict(ck["model"])
+        mine.load_state_dict(ck["mine"])
     else:
         model, mine = build_model(vocab, cfg), MINE()
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
