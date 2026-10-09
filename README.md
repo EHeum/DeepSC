@@ -1,3 +1,16 @@
+# FirstLearning_AI
+
+AI / 통신 논문 구현 학습 프로젝트를 모아 두는 허브입니다. 각 프로젝트는 별도 저장소에서 관리합니다.
+
+| 프로젝트 | 내용 | 주요 결과 |
+|---|---|---|
+| [**DeepSC-PyTorch**](https://github.com/EHeum/DeepSC-PyTorch) | Xie et al., *"Deep Learning Enabled Semantic Communication Systems,"* IEEE TSP 2021의 시스템 모델 분석과 DeepSC PyTorch 재구현·검증. Huffman/5-bit × RS/Turbo 베이스라인, MI 손실, 전이학습 포함 | AWGN 0 dB BLEU-1 0.61(논문 ≈0.62). 기존 분리 부호화의 cliff effect 대비 완만한 열화 재현 |
+| [**DeepSC-Digital**](https://github.com/EHeum/DeepSC-Digital) | DeepJSCC-Q 방식으로 DeepSC 송신 심볼을 M-QAM(4/16/64) 성상점에 제약해 디지털화. soft/hard 수신기, SNR mismatch, cliff 분석 | 64-QAM ≈ analog(12 dB 이상 손실 ≤ 0.003). 디지털화 후에도 cliff 현상 없음 |
+
+> 아래는 프로젝트를 나누기 전의 작업 내용(원본 README)입니다. 앞으로의 개발은 위 두 저장소에서 진행합니다.
+
+---
+
 # DeepSC — Deep Learning Enabled Semantic Communication (PyTorch 재구현)
 
 > H. Xie, Z. Qin, G. Y. Li, B.-H. Juang, **"Deep Learning Enabled Semantic Communication Systems,"**
