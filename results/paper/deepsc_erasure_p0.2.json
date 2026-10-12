@@ -1,0 +1,44 @@
+{
+ "ckpt": "checkpoints/deepsc_erasure.pt",
+ "channel": "erasure",
+ "channel_kwargs": {
+  "p": 0.2
+ },
+ "snrs": [
+  12.0
+ ],
+ "symbols_per_sentence": 161.95993836671803,
+ "runtime_ms_per_sentence": 77.24773325026035,
+ "bleu": {
+  "12.0": {
+   "1": 0.610157344622927,
+   "2": 0.3573847214577333,
+   "3": 0.23387621588197702,
+   "4": 0.15690727769019458
+  }
+ },
+ "samples": {
+  "12.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off in those a new white paper on december ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the proposal and i am pleased so far very well the point of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but how you will also be aware , we are debating for a role on the commission's european union's european union , with the internal market on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i think the fact that the european parliament has not been covered from the coming from the committee on which i am thinking ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in a we say that the union's institutions must put into a decision making a european union should not need to ensure greater transparency ."
+   ]
+  ]
+ }
+}
