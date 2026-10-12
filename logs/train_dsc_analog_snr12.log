@@ -1,0 +1,27 @@
+{"channel": "awgn", "channel_kwargs": {}, "snr_min": 12.0, "snr_max": 12.0, "eval_snr": 12.0, "epochs": 25, "batch_size": 64, "lr": 0.001, "mine_lr": 0.001, "mi_lambda": 0.01, "warmup_steps": 200, "symbols_per_word": 8, "freeze": "none", "unfreeze_epoch": 0, "init": null, "seed": 0, "rx_positional": true, "constellation": null, "quant_temp": 0.5, "quant_ste": "soft", "rx_hard": false}
+vocab=10200 train=11687 test=1298 params=5,389,928
+epoch   1 | train CE 6.8380 | test CE@12.0dB 5.3868 | MI 3.196 bit/sym | 428s
+epoch   2 | train CE 4.8549 | test CE@12.0dB 4.3909 | MI 3.840 bit/sym | 345s
+epoch   3 | train CE 4.0632 | test CE@12.0dB 3.8029 | MI 3.913 bit/sym | 334s
+epoch   4 | train CE 3.5700 | test CE@12.0dB 3.5712 | MI 3.971 bit/sym | 352s
+epoch   5 | train CE 3.1693 | test CE@12.0dB 3.0468 | MI 3.995 bit/sym | 356s
+epoch   6 | train CE 2.8530 | test CE@12.0dB 2.8927 | MI 3.952 bit/sym | 352s
+epoch   7 | train CE 2.6046 | test CE@12.0dB 2.5636 | MI 3.992 bit/sym | 340s
+epoch   8 | train CE 2.3815 | test CE@12.0dB 2.3088 | MI 3.989 bit/sym | 353s
+epoch   9 | train CE 2.1099 | test CE@12.0dB 2.2672 | MI 3.990 bit/sym | 364s
+epoch  10 | train CE 1.9549 | test CE@12.0dB 1.9935 | MI 4.003 bit/sym | 361s
+epoch  11 | train CE 1.7958 | test CE@12.0dB 1.9058 | MI 4.003 bit/sym | 356s
+epoch  12 | train CE 1.6258 | test CE@12.0dB 1.8959 | MI 3.999 bit/sym | 347s
+epoch  13 | train CE 1.4596 | test CE@12.0dB 1.6837 | MI 4.020 bit/sym | 355s
+epoch  14 | train CE 1.3968 | test CE@12.0dB 1.5688 | MI 4.001 bit/sym | 357s
+epoch  15 | train CE 1.2447 | test CE@12.0dB 1.5423 | MI 4.008 bit/sym | 301s
+epoch  16 | train CE 1.1263 | test CE@12.0dB 1.4340 | MI 4.008 bit/sym | 247s
+epoch  17 | train CE 1.0613 | test CE@12.0dB 1.6758 | MI 4.014 bit/sym | 230s
+epoch  18 | train CE 0.9700 | test CE@12.0dB 1.3798 | MI 3.995 bit/sym | 226s
+epoch  19 | train CE 0.8896 | test CE@12.0dB 1.2883 | MI 3.996 bit/sym | 227s
+epoch  20 | train CE 0.8560 | test CE@12.0dB 1.4430 | MI 4.011 bit/sym | 231s
+epoch  21 | train CE 0.7812 | test CE@12.0dB 1.3179 | MI 4.014 bit/sym | 227s
+epoch  22 | train CE 0.7208 | test CE@12.0dB 1.2177 | MI 3.999 bit/sym | 230s
+epoch  23 | train CE 0.6788 | test CE@12.0dB 1.1688 | MI 4.019 bit/sym | 230s
+epoch  24 | train CE 0.6504 | test CE@12.0dB 1.1848 | MI 4.032 bit/sym | 230s
+epoch  25 | train CE 0.5897 | test CE@12.0dB 1.3785 | MI 3.992 bit/sym | 228s

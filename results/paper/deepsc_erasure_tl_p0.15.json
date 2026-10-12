@@ -1,0 +1,44 @@
+{
+ "ckpt": "checkpoints/deepsc_erasure_tl.pt",
+ "channel": "erasure",
+ "channel_kwargs": {
+  "p": 0.15
+ },
+ "snrs": [
+  12.0
+ ],
+ "symbols_per_sentence": 161.95993836671803,
+ "runtime_ms_per_sentence": 71.88446540385485,
+ "bleu": {
+  "12.0": {
+   "1": 0.7923137681727797,
+   "2": 0.6330083111054001,
+   "3": 0.5219747097587498,
+   "4": 0.4300971165738224
+  }
+ },
+ "samples": {
+  "12.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by a general views on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the commission's and malta has far further the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a council on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been adopted from the altener committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must put a decision making system that tax revenue would remain subsidiary ."
+   ]
+  ]
+ }
+}
