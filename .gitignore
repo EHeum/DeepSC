@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-data/raw/
-checkpoints/*.pt
-!checkpoints/.gitkeep
-checkpoints/*_history.json
