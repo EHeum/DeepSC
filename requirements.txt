@@ -1,9 +1,0 @@
-torch>=2.0
-numpy
-nltk
-matplotlib
-reedsolo
-scikit-commpy
-pytest
-# optional: sentence-similarity metric (needs a BERT checkpoint)
-# transformers
