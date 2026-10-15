@@ -146,11 +146,13 @@ class MINE(nn.Module):
     Input: one transmitted / received complex symbol pair (Re x, Im x, Re y, Im y).
     """
 
-    def __init__(self, in_dim=4, hidden=256):
+    def __init__(self, in_dim=4, hidden=256, out_act="linear"):
         super().__init__()
+        # Table I puts a ReLU on the last layer; "linear" (default) lets T take negative values too
+        last = [nn.ReLU()] if out_act == "relu" else []
         self.net = nn.Sequential(nn.Linear(in_dim, hidden), nn.ReLU(),
                                  nn.Linear(hidden, hidden), nn.ReLU(),
-                                 nn.Linear(hidden, 1))
+                                 nn.Linear(hidden, 1), *last)
 
     def forward(self, x, y):
         return self.net(torch.cat([x, y], -1))

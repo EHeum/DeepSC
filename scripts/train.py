@@ -27,6 +27,8 @@ def main():
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--mine-lr", type=float, default=1e-3)
+    ap.add_argument("--mine-out", default="linear", choices=["linear", "relu"],
+                    help="activation of the MI model's output layer (Table I: ReLU)")
     ap.add_argument("--mi-lambda", type=float, default=0.01, help="lambda of eq. (14); 0 = no MI term")
     ap.add_argument("--warmup-steps", type=int, default=200)
     ap.add_argument("--symbols-per-word", type=int, default=8)
@@ -62,17 +64,17 @@ def main():
            "symbols_per_word": a.symbols_per_word, "freeze": a.freeze, "unfreeze_epoch": a.unfreeze_epoch,
            "init": a.init, "seed": a.seed, "rx_positional": not a.no_rx_pos,
            "constellation": a.constellation, "quant_temp": a.quant_temp, "quant_ste": a.quant_ste,
-           "rx_hard": a.rx_hard}
+           "rx_hard": a.rx_hard, "mine_out": a.mine_out}
     if a.init:
         ck = torch.load(a.init, map_location="cpu")
         cfg["symbols_per_word"] = ck["cfg"]["symbols_per_word"]
         cfg["rx_positional"] = ck["cfg"].get("rx_positional", True)
         # the architecture may change (e.g. analog -> constellation); the weights are identical
-        model, mine = build_model(vocab, cfg), MINE()
+        model, mine = build_model(vocab, cfg), MINE(out_act=a.mine_out)
         model.load_state_dict(ck["model"])
         mine.load_state_dict(ck["mine"])
     else:
-        model, mine = build_model(vocab, cfg), MINE()
+        model, mine = build_model(vocab, cfg), MINE(out_act=a.mine_out)
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, mine = model.to(dev), mine.to(dev)
     print(json.dumps(cfg))

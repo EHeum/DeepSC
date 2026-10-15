@@ -30,7 +30,7 @@ def load_checkpoint(path, vocab, map_location="cpu"):
     ck = torch.load(path, map_location=map_location)
     model = build_model(vocab, ck["cfg"])
     model.load_state_dict(ck["model"])
-    mine = MINE()
+    mine = MINE(out_act=ck["cfg"].get("mine_out", "linear"))
     mine.load_state_dict(ck["mine"])
     return model, mine, ck
 
