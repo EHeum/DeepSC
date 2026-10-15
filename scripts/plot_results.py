@@ -142,7 +142,8 @@ if __name__ == "__main__":
     fig_bleu_vs_snr()
     fig_mi()
     fig_training_curves("fig10_mi_during_training.png",
-                        [("with MI term (lambda=0.01)", "deepsc_awgn_history.json"),
+                        [("with MI term, MINE linear", "deepsc_awgn_history.json"),
+                         ("with MI term, MINE ReLU", "deepsc_awgn_mine_relu_history.json"),
                          ("without MI term", "deepsc_awgn_nomi_history.json")],
                         "MI estimate during training (AWGN)", key="mi_bits", ylabel="I(X;Y) (bit / symbol)")
     fig_training_curves("fig13_tl_rayleigh_loss.png",
@@ -158,7 +159,9 @@ if __name__ == "__main__":
                      ("8 symbols / word", "deepsc_awgn.json")],
                     "DeepSC (AWGN): symbols per word")
     fig_simple_bleu("fig_mi_ablation_bleu.png",
-                    [("with MI term", "deepsc_awgn.json"), ("without MI term", "deepsc_awgn_nomi.json")],
+                    [("with MI term (MINE linear output)", "deepsc_awgn.json"),
+                     ("with MI term (MINE ReLU output)", "deepsc_awgn_mine_relu.json"),
+                     ("without MI term", "deepsc_awgn_nomi.json")],
                     "DeepSC (AWGN): effect of the MI loss")
     fig_simple_bleu("fig13_tl_rayleigh_bleu.png",
                     [("with TL (12 epochs)", "deepsc_rayleigh_tl.json"), ("without TL (40 epochs from scratch)", "deepsc_rayleigh.json")],

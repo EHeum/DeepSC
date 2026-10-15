@@ -1,0 +1,9 @@
+awgn SNR   0.0 dB | BLEU-1 0.583 2 0.338 3 0.219 4 0.144
+awgn SNR   3.0 dB | BLEU-1 0.762 2 0.583 3 0.468 4 0.376
+awgn SNR   6.0 dB | BLEU-1 0.827 2 0.682 3 0.582 4 0.498
+awgn SNR   9.0 dB | BLEU-1 0.848 2 0.716 3 0.621 4 0.540
+awgn SNR  12.0 dB | BLEU-1 0.853 2 0.725 3 0.631 4 0.550
+awgn SNR  15.0 dB | BLEU-1 0.857 2 0.733 3 0.641 4 0.561
+awgn SNR  18.0 dB | BLEU-1 0.856 2 0.732 3 0.640 4 0.560
+avg complex symbols / sentence = 162.0, runtime 97.66 ms / sentence
+transmitted symbols: {"avg_power": 1.0, "peak_to_avg_power": 12.718350410461426}
