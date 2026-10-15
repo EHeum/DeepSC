@@ -81,11 +81,14 @@ def main():
     print(f"vocab={len(vocab)} train={len(train_s)} test={len(test_s)} "
           f"params={sum(p.numel() for p in model.parameters()):,}")
 
-    history = train(model, mine, train_s, test_s, vocab, cfg, log=lambda s: print(s, flush=True))
+    state_path = os.path.splitext(a.out)[0] + ".state.pt"  # per-epoch state; rerun the same command to resume
+    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+    history = train(model, mine, train_s, test_s, vocab, cfg, log=lambda s: print(s, flush=True), state_path=state_path)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     save_checkpoint(a.out, model.cpu(), mine.cpu(), cfg, history)
     with open(os.path.splitext(a.out)[0] + "_history.json", "w") as f:
         json.dump({"cfg": cfg, "history": history}, f, indent=1)
+    os.remove(state_path)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """Training (Algorithms 1-4) and evaluation loops for DeepSC."""
 import math
+import os
 import random
 import time
 
@@ -51,11 +52,14 @@ def set_trainable(model, freeze):
             p.requires_grad_(False)
 
 
-def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
+def train(model, mine, train_sents, test_sents, vocab, cfg, log=print, state_path=None):
     """Algorithm 1: alternate MI-model training (Alg. 2) and whole-network training (Alg. 3).
 
     cfg keys: channel, snr_min, snr_max, epochs, batch_size, lr, mine_lr, mi_lambda,
               freeze, unfreeze_epoch, warmup_steps, channel_kwargs
+
+    With ``state_path`` the full training state is written there after every epoch and,
+    if the file already exists, training resumes from it (e.g. after a machine restart).
     """
     dev = next(model.parameters()).device
     ds = SentenceDataset(train_sents, vocab)
@@ -72,8 +76,21 @@ def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
     opt = make_opt()
     opt_mine = torch.optim.Adam(mine.parameters(), lr=cfg["mine_lr"])
     warm = cfg.get("warmup_steps", 0)
-    step, history = 0, []
-    for epoch in range(1, cfg["epochs"] + 1):
+    step, history, start = 0, [], 1
+    if state_path and os.path.exists(state_path):
+        st = torch.load(state_path, map_location=dev)
+        model.load_state_dict(st["model"])
+        mine.load_state_dict(st["mine"])
+        step, history, start = st["step"], st["history"], st["epoch"] + 1
+        if cfg.get("unfreeze_epoch") and start > cfg["unfreeze_epoch"]:
+            set_trainable(model, "none")
+            opt = make_opt()
+        opt.load_state_dict(st["opt"])
+        opt_mine.load_state_dict(st["opt_mine"])
+        random.setstate(st["py_rng"])
+        torch.set_rng_state(st["torch_rng"])
+        log(f"resumed from {state_path} after epoch {st['epoch']}")
+    for epoch in range(start, cfg["epochs"] + 1):
         if cfg.get("unfreeze_epoch") and epoch == cfg["unfreeze_epoch"]:
             set_trainable(model, "none")  # Alg. 4: finally fine-tune the whole network
             opt = make_opt()
@@ -111,6 +128,12 @@ def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
         rec = {"epoch": epoch, "train_ce": tot_ce / n, "mi_bits": tot_mi / n / math.log(2),
                "test_ce": test_ce, "sec": time.time() - t0}
         history.append(rec)
+        if state_path:
+            tmp = state_path + ".tmp"
+            torch.save({"model": model.state_dict(), "mine": mine.state_dict(), "opt": opt.state_dict(),
+                        "opt_mine": opt_mine.state_dict(), "step": step, "epoch": epoch, "history": history,
+                        "py_rng": random.getstate(), "torch_rng": torch.get_rng_state()}, tmp)
+            os.replace(tmp, state_path)
         log(f"epoch {epoch:3d} | train CE {rec['train_ce']:.4f} | test CE@{cfg.get('eval_snr', 6.0)}dB "
             f"{test_ce:.4f} | MI {rec['mi_bits']:.3f} bit/sym | {rec['sec']:.0f}s")
     return history
