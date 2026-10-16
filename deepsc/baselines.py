@@ -129,12 +129,22 @@ def _lse(a, axis):
 
 
 # ================================ channel ================================== #
-def channel(x, snr_db, kind, rng):
-    """x: complex symbols of one sentence -> equalised y, per-symbol noise variance."""
+def channel(x, snr_db, kind, rng, n_sc=64, n_taps=8, decay=2.0):
+    """x: complex symbols of one sentence -> equalised y, per-symbol noise variance.
+
+    kind "ofdm": the frequency-domain equivalent of ``deepsc.channels.ofdm`` (CP longer than the
+    delay spread, contiguous mapping, perfect CSI, zero forcing): subcarrier k sees H_k X + N.
+    """
     n0 = 10 ** (-snr_db / 10)  # E|n|^2 for unit-power symbols
     n = np.sqrt(n0 / 2) * (rng.standard_normal(x.shape) + 1j * rng.standard_normal(x.shape))
     if kind == "awgn":
         return x + n, np.full(x.shape, n0)
+    if kind == "ofdm":
+        pdp = np.exp(-np.arange(n_taps) / decay)
+        pdp /= pdp.sum()
+        h = (rng.standard_normal(n_taps) + 1j * rng.standard_normal(n_taps)) / np.sqrt(2) * np.sqrt(pdp)
+        hk = np.fft.fft(h, n_sc)[np.arange(len(x)) % n_sc]
+        return (hk * x + n) / hk, n0 / np.abs(hk) ** 2
     h = (rng.standard_normal() + 1j * rng.standard_normal()) / np.sqrt(2)
     return (h * x + n) / h, np.full(x.shape, n0 / abs(h) ** 2)
 

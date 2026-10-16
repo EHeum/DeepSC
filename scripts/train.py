@@ -17,7 +17,13 @@ from deepsc.models import MINE  # noqa: E402
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/europarl_en.json")
-    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rician", "erasure"])
+    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rician", "erasure", "ofdm"])
+    ap.add_argument("--ofdm-sc", type=int, default=64, help="OFDM subcarriers")
+    ap.add_argument("--ofdm-cp", type=int, default=16, help="cyclic prefix length")
+    ap.add_argument("--ofdm-taps", type=int, default=8, help="multipath taps")
+    ap.add_argument("--ofdm-decay", type=float, default=2.0, help="power-delay profile decay (taps)")
+    ap.add_argument("--ofdm-eq", default="zf", choices=["zf", "mmse"])
+    ap.add_argument("--ofdm-map", default="contiguous", choices=["contiguous", "interleaved"])
     ap.add_argument("--erasure-p", type=float, default=0.1)
     ap.add_argument("--rician-k", type=float, default=1.0)
     ap.add_argument("--snr-min", type=float, default=0.0)
@@ -57,7 +63,9 @@ def main():
     if a.max_train:
         train_s = train_s[: a.max_train]
 
-    kw = {"erasure": {"p": a.erasure_p}, "rician": {"k": a.rician_k}}.get(a.channel, {})
+    kw = {"erasure": {"p": a.erasure_p}, "rician": {"k": a.rician_k},
+          "ofdm": {"n_sc": a.ofdm_sc, "cp": a.ofdm_cp, "n_taps": a.ofdm_taps, "decay": a.ofdm_decay,
+                   "eq": a.ofdm_eq, "mapping": a.ofdm_map}}.get(a.channel, {})
     cfg = {"channel": a.channel, "channel_kwargs": kw, "snr_min": a.snr_min, "snr_max": a.snr_max,
            "eval_snr": a.eval_snr, "epochs": a.epochs, "batch_size": a.batch_size, "lr": a.lr,
            "mine_lr": a.mine_lr, "mi_lambda": a.mi_lambda, "warmup_steps": a.warmup_steps,

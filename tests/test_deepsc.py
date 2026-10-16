@@ -127,3 +127,24 @@ def test_digital_deepsc_and_analog_checkpoint_compatible():
     assert ((x[mask][:, None] - digital.mapper.points).abs().min(-1).values < 1e-5).all()
     out = digital.greedy_decode(src, v.start, v.end, "awgn", 10.0)
     assert out.size(0) == 3
+
+
+def test_ofdm_channel_noise_free_and_snr():
+    from deepsc.channels import ofdm
+    torch.manual_seed(0)
+    x = power_normalize(torch.complex(torch.randn(16, 300), torch.randn(16, 300)))
+    for mapping in ("contiguous", "interleaved"):
+        y = ofdm(x, 200.0, mapping=mapping)  # practically noise free
+        assert y.shape == x.shape and torch.allclose(y, x, atol=1e-4)
+    # with a flat single-tap channel h = 1 every subcarrier sees exactly the nominal SNR
+    taps = torch.zeros(16, 8, dtype=torch.complex64)
+    taps[:, 0] = 1
+    n = ofdm(x, 10.0, taps=taps) - x
+    measured = 10 * math.log10(1 / (n.abs() ** 2).mean().item())
+    assert abs(measured - 10.0) < 0.2
+
+
+def test_traditional_over_ofdm_high_snr_error_free():
+    s = TraditionalSystem(HuffmanCoder(SENTS), TurboCode(5), 64, seed=0)
+    out, _ = s.transmit(SENTS, 40.0, "ofdm")
+    assert out == SENTS
