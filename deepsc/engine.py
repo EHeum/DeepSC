@@ -20,7 +20,20 @@ def build_model(vocab, cfg):
                   symbols_per_word=cfg.get("symbols_per_word", 8), dropout=cfg.get("dropout", 0.1),
                   rx_positional=cfg.get("rx_positional", True), norm_first=cfg.get("norm_first", False),
                   constellation=cfg.get("constellation"), quant_temp=cfg.get("quant_temp", 0.5),
-                  quant_ste=cfg.get("quant_ste", "soft"), rx_hard=cfg.get("rx_hard", False))
+                  quant_ste=cfg.get("quant_ste", "soft"), rx_hard=cfg.get("rx_hard", False),
+                  csi_rx=cfg.get("csi_rx", False))
+
+
+def load_weights(model, state):
+    """Load weights, widening the channel decoder's first layer with zero columns when the new
+    model takes extra (CSI) inputs, so it starts out computing exactly what the old one did."""
+    key = "channel_decoder.0.weight"
+    own = model.state_dict()[key]
+    if state[key].shape != own.shape:
+        w = torch.zeros_like(own)
+        w[:, : state[key].shape[1]] = state[key]
+        state = {**state, key: w}
+    model.load_state_dict(state)
 
 
 def save_checkpoint(path, model, mine, cfg, history):

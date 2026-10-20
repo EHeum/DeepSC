@@ -8,6 +8,9 @@ equalisation y / h. The fading coefficient is constant over one sentence
 
 ``ofdm`` puts the symbols on the subcarriers of CP-OFDM and sends them through a
 frequency-selective multipath channel (see its docstring).
+
+With ``return_csi=True`` every channel also returns the per-symbol power gain |h|^2
+(B, N), which a CSI-aware receiver can use as a reliability measure.
 """
 import math
 
@@ -36,38 +39,50 @@ def _noise(x, snr_db):
     return std * torch.complex(torch.randn_like(x.real), torch.randn_like(x.real))
 
 
-def awgn(x, snr_db):
-    return x + _noise(x, snr_db)
+def _equalise(h, y, snr_db, eq):
+    if eq == "mmse":
+        return y * h.conj() / (h.abs() ** 2 + 10 ** (-snr_db / 10))
+    return y / h
+
+
+def _out(y, gain, return_csi):
+    return (y, gain) if return_csi else y
+
+
+def awgn(x, snr_db, return_csi=False):
+    return _out(x + _noise(x, snr_db), torch.ones_like(x.real), return_csi)
 
 
 def _cn(shape, device):
     return torch.complex(torch.randn(shape, device=device), torch.randn(shape, device=device)) / math.sqrt(2)
 
 
-def rayleigh(x, snr_db):
+def rayleigh(x, snr_db, eq="zf", return_csi=False):
     h = _cn((x.shape[0], 1), x.device)  # h ~ CN(0, 1), one per sentence
-    return (h * x + _noise(x, snr_db)) / h
+    y = _equalise(h, h * x + _noise(x, snr_db), snr_db, eq)
+    return _out(y, (h.abs() ** 2).expand_as(x.real), return_csi)
 
 
-def rayleigh_iid(x, snr_db):
-    """Fast (i.i.d.) Rayleigh fading: every symbol gets its own h ~ CN(0, 1), ZF with perfect CSI.
+def rayleigh_iid(x, snr_db, eq="zf", return_csi=False):
+    """Fast (i.i.d.) Rayleigh fading: every symbol gets its own h ~ CN(0, 1), ZF/MMSE, perfect CSI.
 
     Each OFDM subcarrier gain is also CN(0, 1), so this channel has the same per-symbol statistics
     as ``ofdm`` and differs only in that the gains are uncorrelated.
     """
     h = _cn(x.shape, x.device)
-    return (h * x + _noise(x, snr_db)) / h
+    return _out(_equalise(h, h * x + _noise(x, snr_db), snr_db, eq), h.abs() ** 2, return_csi)
 
 
-def rician(x, snr_db, k=1.0):
+def rician(x, snr_db, k=1.0, eq="zf", return_csi=False):
     h = math.sqrt(k / (k + 1)) + math.sqrt(1 / (k + 1)) * _cn((x.shape[0], 1), x.device)
-    return (h * x + _noise(x, snr_db)) / h
+    y = _equalise(h, h * x + _noise(x, snr_db), snr_db, eq)
+    return _out(y, (h.abs() ** 2).expand_as(x.real), return_csi)
 
 
-def erasure(x, snr_db, p=0.1):
+def erasure(x, snr_db, p=0.1, return_csi=False):
     """AWGN followed by symbol erasures with probability p (erased -> 0)."""
     keep = (torch.rand_like(x.real) >= p).to(x.real.dtype)
-    return awgn(x, snr_db) * keep
+    return _out(awgn(x, snr_db) * keep, keep, return_csi)
 
 
 def _bit_reversal(n):
@@ -83,7 +98,8 @@ def multipath_taps(batch, n_taps=8, decay=2.0, device="cpu"):
     return _cn((batch, n_taps), device) * pdp.sqrt()
 
 
-def ofdm(x, snr_db, n_sc=64, cp=16, n_taps=8, decay=2.0, eq="zf", mapping="contiguous", taps=None):
+def ofdm(x, snr_db, n_sc=64, cp=16, n_taps=8, decay=2.0, eq="zf", mapping="contiguous", taps=None,
+         return_csi=False):
     """CP-OFDM over a multipath channel, simulated in the time domain.
 
     x (B, N) complex -> equalised subcarrier symbols (B, N), in the same order.
@@ -116,14 +132,11 @@ def ofdm(x, snr_db, n_sc=64, cp=16, n_taps=8, decay=2.0, eq="zf", mapping="conti
     r = r + _noise(r, snr_db)
     y = torch.fft.fft(r.reshape(b, n_ofdm, n_sc + cp)[..., cp:], norm="ortho")
     hk = torch.fft.fft(h, n=n_sc)[:, None, :]  # frequency response per subcarrier
-    if eq == "mmse":
-        n0 = 10 ** (-snr_db / 10)
-        y = y * hk.conj() / (hk.abs() ** 2 + n0)
-    else:
-        y = y / hk
+    y = _equalise(hk, y, snr_db, eq)
+    gain = (hk.abs() ** 2).expand(b, n_ofdm, n_sc)
     if perm is not None:
-        y = y[..., perm]
-    return y.reshape(b, -1)[:, :n]
+        y, gain = y[..., perm], gain[..., perm]
+    return _out(y.reshape(b, -1)[:, :n], gain.reshape(b, -1)[:, :n], return_csi)
 
 
 CHANNELS = {"awgn": awgn, "ofdm": ofdm, "rayleigh_iid": rayleigh_iid, "rayleigh": rayleigh, "rician": rician, "erasure": erasure}
