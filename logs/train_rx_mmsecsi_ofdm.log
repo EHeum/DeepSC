@@ -1,0 +1,14 @@
+{"channel": "ofdm", "channel_kwargs": {"n_sc": 64, "cp": 16, "n_taps": 8, "decay": 2.0, "eq": "mmse", "mapping": "contiguous"}, "snr_min": 0.0, "snr_max": 18.0, "eval_snr": 6.0, "epochs": 12, "batch_size": 64, "lr": 0.0005, "mine_lr": 0.001, "mi_lambda": 0.01, "warmup_steps": 200, "symbols_per_word": 8, "freeze": "none", "unfreeze_epoch": 0, "init": "checkpoints/deepsc_awgn.pt", "seed": 0, "rx_positional": true, "constellation": null, "quant_temp": 0.5, "quant_ste": "soft", "rx_hard": false, "mine_out": "linear", "csi_rx": true}
+vocab=10200 train=11687 test=1298 params=5,391,976
+epoch   1 | train CE 0.7327 | test CE@6.0dB 1.8441 | MI 2.231 bit/sym | 145s
+epoch   2 | train CE 0.7299 | test CE@6.0dB 1.7035 | MI 2.129 bit/sym | 141s
+epoch   3 | train CE 0.7277 | test CE@6.0dB 1.9994 | MI 2.185 bit/sym | 140s
+epoch   4 | train CE 0.6863 | test CE@6.0dB 1.7360 | MI 2.078 bit/sym | 138s
+epoch   5 | train CE 0.6995 | test CE@6.0dB 1.6609 | MI 2.089 bit/sym | 136s
+epoch   6 | train CE 0.6165 | test CE@6.0dB 1.9596 | MI 2.318 bit/sym | 138s
+epoch   7 | train CE 0.7203 | test CE@6.0dB 1.7186 | MI 2.073 bit/sym | 137s
+epoch   8 | train CE 0.5883 | test CE@6.0dB 1.6292 | MI 2.317 bit/sym | 138s
+epoch   9 | train CE 0.6078 | test CE@6.0dB 1.7352 | MI 2.195 bit/sym | 140s
+epoch  10 | train CE 0.5772 | test CE@6.0dB 1.7256 | MI 2.267 bit/sym | 139s
+epoch  11 | train CE 0.6169 | test CE@6.0dB 1.6233 | MI 2.185 bit/sym | 135s
+epoch  12 | train CE 0.6308 | test CE@6.0dB 1.8580 | MI 2.165 bit/sym | 135s

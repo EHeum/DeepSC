@@ -48,7 +48,38 @@ def main():
         fig.savefig(os.path.join(D, f"bleu{n}_ofdm.png"), dpi=130)
         plt.close(fig)
     decomposition()
+    receivers()
     print("figures written to", D)
+
+
+def receivers():
+    """ZF vs MMSE vs CSI-aware decoder on the three fading channels (results/receiver)."""
+    R = "results/receiver"
+    chans = [("i.i.d. Rayleigh", "riid", "analog_riid"), ("OFDM contiguous", "ofdm", "analog_ofdm"),
+             ("OFDM interleaved", "ofdmil", "analog_ofdm_il")]
+    rxs = [("ZF", None, SERIES[0], "-"), ("ZF + CSI decoder", "csi", SERIES[1], "-"),
+           ("MMSE", "mmse", SERIES[2], "-"), ("MMSE + CSI decoder", "mmsecsi", SERIES[3], "--")]
+    ref = load("results/digital/analog_ft.json")
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4.6), sharey=True)
+    for ax, (title, tag, zf) in zip(axes, chans):
+        for i, (name, rx, color, ls) in enumerate(rxs):
+            d = load(os.path.join(D, zf + ".json")) if rx is None else load(os.path.join(R, f"{rx}_{tag}.json"))
+            if d:
+                x, y = curve(d["bleu"], 1)
+                ax.plot(x, y, color=color, ls=ls, marker=MARKERS[i], label=name)
+        if ref:
+            x, y = curve(ref["bleu"], 1)
+            ax.plot(x, y, color="#898781", ls=":", label="AWGN (reference)")
+        ax.set_title(title)
+        ax.set_xlabel("average SNR per symbol (dB)")
+        ax.set_xticks(range(-6, 25, 6))
+        ax.set_ylim(-0.02, 1.02)
+    axes[0].set_ylabel("BLEU (1-gram)")
+    axes[0].legend(fontsize=8, loc="lower right")
+    fig.suptitle("Analog DeepSC on fading channels: equaliser and CSI-aware decoder (12-epoch fine-tuning each)")
+    fig.tight_layout()
+    fig.savefig(os.path.join(R, "receivers.png"), dpi=130)
+    plt.close(fig)
 
 
 def decomposition():
