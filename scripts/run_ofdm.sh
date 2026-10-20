@@ -21,5 +21,22 @@ ev qam16_awgn_model --ckpt checkpoints/dsc_qam16_ft.pt &
 [ -f results/ofdm/baselines_ofdm.json ] || python3 scripts/eval_baselines.py --channels ofdm --snrs=$SNRS \
     --out results/ofdm/baselines_ofdm.json > logs/baselines_ofdm.log 2>&1 &
 wait
-cp checkpoints/dsc_*_ofdm_history.json results/ofdm/ 2>/dev/null
+
+# ---- stage 2: interleaved mapping (bit-reversal: one word's 8 symbols land >= 8 subcarriers apart) ----
+IL="--ofdm-map interleaved"
+[ -f checkpoints/dsc_analog_ofdm_il.pt ] || python3 scripts/train.py $FT $IL --init checkpoints/deepsc_awgn.pt \
+    --out checkpoints/dsc_analog_ofdm_il.pt >> logs/train_dsc_analog_ofdm_il.log 2>&1 &
+[ -f checkpoints/dsc_qam16_ofdm_il.pt ] || python3 scripts/train.py $FT $IL --init checkpoints/dsc_qam16_ft.pt \
+    --constellation qam16 --out checkpoints/dsc_qam16_ofdm_il.pt >> logs/train_dsc_qam16_ofdm_il.log 2>&1 &
+wait
+ev analog_ofdm_il --ckpt checkpoints/dsc_analog_ofdm_il.pt &
+ev qam16_ofdm_il --ckpt checkpoints/dsc_qam16_ofdm_il.pt &
+ev qam16_ofdm_il_hardrx --ckpt checkpoints/dsc_qam16_ofdm_il.pt --rx-hard &
+ev analog_ofdm_contig_model_on_il --ckpt checkpoints/dsc_analog_ofdm.pt $IL &
+wait
+ev analog_awgn_model_il --ckpt checkpoints/deepsc_awgn.pt $IL &
+[ -f results/ofdm/baselines_ofdm_il.json ] || python3 scripts/eval_baselines.py --channels ofdm --snrs=$SNRS $IL \
+    --out results/ofdm/baselines_ofdm_il.json > logs/baselines_ofdm_il.log 2>&1 &
+wait
+cp checkpoints/dsc_*_ofdm*_history.json results/ofdm/ 2>/dev/null
 echo ofdm done

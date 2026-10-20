@@ -148,3 +148,6 @@ def test_traditional_over_ofdm_high_snr_error_free():
     s = TraditionalSystem(HuffmanCoder(SENTS), TurboCode(5), 64, seed=0)
     out, _ = s.transmit(SENTS, 40.0, "ofdm")
     assert out == SENTS
+    s = TraditionalSystem(HuffmanCoder(SENTS), ReedSolomon(42, 30), 64, seed=0, ofdm_mapping="interleaved")
+    out, _ = s.transmit(SENTS, 40.0, "ofdm")
+    assert out == SENTS
