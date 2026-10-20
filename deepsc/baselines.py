@@ -140,6 +140,9 @@ def channel(x, snr_db, kind, rng, n_sc=64, n_taps=8, decay=2.0, mapping="contigu
     n = np.sqrt(n0 / 2) * (rng.standard_normal(x.shape) + 1j * rng.standard_normal(x.shape))
     if kind == "awgn":
         return x + n, np.full(x.shape, n0)
+    if kind == "rayleigh_iid":
+        h = (rng.standard_normal(x.shape) + 1j * rng.standard_normal(x.shape)) / np.sqrt(2)
+        return (h * x + n) / h, n0 / np.abs(h) ** 2
     if kind == "ofdm":
         pdp = np.exp(-np.arange(n_taps) / decay)
         pdp /= pdp.sum()

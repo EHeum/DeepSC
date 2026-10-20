@@ -49,6 +49,16 @@ def rayleigh(x, snr_db):
     return (h * x + _noise(x, snr_db)) / h
 
 
+def rayleigh_iid(x, snr_db):
+    """Fast (i.i.d.) Rayleigh fading: every symbol gets its own h ~ CN(0, 1), ZF with perfect CSI.
+
+    Each OFDM subcarrier gain is also CN(0, 1), so this channel has the same per-symbol statistics
+    as ``ofdm`` and differs only in that the gains are uncorrelated.
+    """
+    h = _cn(x.shape, x.device)
+    return (h * x + _noise(x, snr_db)) / h
+
+
 def rician(x, snr_db, k=1.0):
     h = math.sqrt(k / (k + 1)) + math.sqrt(1 / (k + 1)) * _cn((x.shape[0], 1), x.device)
     return (h * x + _noise(x, snr_db)) / h
@@ -116,7 +126,7 @@ def ofdm(x, snr_db, n_sc=64, cp=16, n_taps=8, decay=2.0, eq="zf", mapping="conti
     return y.reshape(b, -1)[:, :n]
 
 
-CHANNELS = {"awgn": awgn, "ofdm": ofdm, "rayleigh": rayleigh, "rician": rician, "erasure": erasure}
+CHANNELS = {"awgn": awgn, "ofdm": ofdm, "rayleigh_iid": rayleigh_iid, "rayleigh": rayleigh, "rician": rician, "erasure": erasure}
 
 
 def apply_channel(name, x, snr_db, **kw):

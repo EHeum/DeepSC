@@ -17,7 +17,7 @@ from deepsc.models import MINE  # noqa: E402
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/europarl_en.json")
-    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rician", "erasure", "ofdm"])
+    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rayleigh_iid", "rician", "erasure", "ofdm"])
     ap.add_argument("--ofdm-sc", type=int, default=64, help="OFDM subcarriers")
     ap.add_argument("--ofdm-cp", type=int, default=16, help="cyclic prefix length")
     ap.add_argument("--ofdm-taps", type=int, default=8, help="multipath taps")
