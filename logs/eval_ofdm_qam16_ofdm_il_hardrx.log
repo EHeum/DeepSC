@@ -1,0 +1,13 @@
+ofdm SNR  -6.0 dB | BLEU-1 0.241 2 0.036 3 0.011 4 0.003
+ofdm SNR  -3.0 dB | BLEU-1 0.328 2 0.097 3 0.044 4 0.023
+ofdm SNR   0.0 dB | BLEU-1 0.453 2 0.209 3 0.124 4 0.077
+ofdm SNR   3.0 dB | BLEU-1 0.581 2 0.350 3 0.239 4 0.169
+ofdm SNR   6.0 dB | BLEU-1 0.699 2 0.497 3 0.381 4 0.294
+ofdm SNR   9.0 dB | BLEU-1 0.768 2 0.596 3 0.482 4 0.393
+ofdm SNR  12.0 dB | BLEU-1 0.805 2 0.650 3 0.543 4 0.453
+ofdm SNR  15.0 dB | BLEU-1 0.832 2 0.692 3 0.590 4 0.504
+ofdm SNR  18.0 dB | BLEU-1 0.841 2 0.708 3 0.609 4 0.524
+ofdm SNR  21.0 dB | BLEU-1 0.847 2 0.718 3 0.620 4 0.537
+ofdm SNR  24.0 dB | BLEU-1 0.851 2 0.724 3 0.629 4 0.547
+avg complex symbols / sentence = 162.0, runtime 57.86 ms / sentence
+transmitted symbols: {"avg_power": 1.1039462089538574, "peak_to_avg_power": 1.6305142641067505, "on_constellation": 1.0, "used_points": 16, "label_entropy_bits": 3.9365429878234863, "bits_per_symbol": 4.0, "coded_bits_per_sentence": 647.8397534668721}

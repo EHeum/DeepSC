@@ -1,0 +1,13 @@
+rayleigh_iid SNR  -6.0 dB | BLEU-1 0.245 2 0.031 3 0.006 4 0.002
+rayleigh_iid SNR  -3.0 dB | BLEU-1 0.292 2 0.057 3 0.016 4 0.005
+rayleigh_iid SNR   0.0 dB | BLEU-1 0.378 2 0.124 3 0.054 4 0.025
+rayleigh_iid SNR   3.0 dB | BLEU-1 0.504 2 0.251 3 0.144 4 0.084
+rayleigh_iid SNR   6.0 dB | BLEU-1 0.642 2 0.417 3 0.292 4 0.205
+rayleigh_iid SNR   9.0 dB | BLEU-1 0.741 2 0.555 3 0.434 4 0.339
+rayleigh_iid SNR  12.0 dB | BLEU-1 0.797 2 0.637 3 0.527 4 0.434
+rayleigh_iid SNR  15.0 dB | BLEU-1 0.834 2 0.694 3 0.591 4 0.502
+rayleigh_iid SNR  18.0 dB | BLEU-1 0.846 2 0.715 3 0.616 4 0.532
+rayleigh_iid SNR  21.0 dB | BLEU-1 0.856 2 0.729 3 0.633 4 0.550
+rayleigh_iid SNR  24.0 dB | BLEU-1 0.860 2 0.737 3 0.642 4 0.560
+avg complex symbols / sentence = 162.0, runtime 58.76 ms / sentence
+transmitted symbols: {"avg_power": 1.0, "peak_to_avg_power": 11.434127807617188}

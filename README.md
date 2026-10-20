@@ -13,7 +13,7 @@ DeepSC(Deep Learning Enabled Semantic Communication) 구현과 성능 개선을 
 |---|---|---|
 | [01 논문 재현](docs/01_paper_reproduction.md) | 시스템 모델 분석, DeepSC PyTorch 재구현, Huffman/5-bit × RS/Turbo 베이스라인, MI 손실, 단어당 심볼 수, 전이학습 (Fig. 6, 8, 9, 10, 13, Table II, III) | AWGN 0 dB BLEU-1 0.61(논문 ≈ 0.62). 기존 분리 부호화의 cliff effect 대비 완만한 열화 재현 |
 | [02 디지털화](docs/02_digital_deepsc.md) | DeepJSCC-Q 방식으로 송신 심볼을 4/16/64-QAM 성상점에 제약. soft/hard 수신기, SNR mismatch, MI 포화, cliff 정량 분석 | 64-QAM ≈ analog(12 dB 이상 손실 ≤ 0.003). 디지털화 후에도 cliff 현상 없음 |
-| [03 OFDM](docs/03_ofdm.md) | 송신 심볼을 CP-OFDM(64 부반송파, 8탭 다중경로, ZF) 부반송파에 실어 전송. AWGN 모델에서 전이학습, analog·16-QAM·기존 방식 비교 | 0 dB BLEU-1 0.48(AWGN 모델 그대로 0.39). 16-QAM ≈ analog, cliff 없음. 9 dB 이하에서 기존 방식보다 우수 |
+| [03 OFDM](docs/03_ofdm.md) | 송신 심볼을 CP-OFDM(64 부반송파, 8탭 다중경로, ZF) 부반송파에 실어 전송. 전이학습, analog·16-QAM·기존 방식 비교, 부반송파 interleaving, i.i.d. Rayleigh로 페이딩 손실과 상관 손실 분해 | 0 dB BLEU-1 0.48, cliff 없음. AWGN 대비 손실은 전부 페이딩 손실이고, 상관은 오히려 도움(interleaving 시 0 dB 0.48 → 0.41) |
 
 | 요약 (AWGN, BLEU-1) | 0 dB | 12 dB | 24 dB | cliff |
 |---|---|---|---|---|
@@ -32,7 +32,7 @@ DeepSC(Deep Learning Enabled Semantic Communication) 구현과 성능 개선을 
 deepsc/                  핵심 라이브러리
   data.py                Europarl 전처리(4–30 단어), 어휘집, Dataset
   models.py              DeepSC 송수신기, MINE, MI 하한 (constellation / hard 수신기 옵션 포함)
-  channels.py            AWGN / Rayleigh / Rician / Erasure / CP-OFDM 다중경로 채널, 전력 정규화
+  channels.py            AWGN / Rayleigh(block, i.i.d.) / Rician / Erasure / CP-OFDM 다중경로 채널, 전력 정규화
   constellation.py       M-QAM soft-to-hard 양자화 (DeepJSCC-Q)
   engine.py              학습(Algorithm 1–4)·평가 루프
   metrics.py             BLEU, BERT sentence similarity
@@ -48,6 +48,7 @@ scripts/
   run_all.sh             논문 재현 실험 전체
   run_digital.sh         디지털화 실험 전체
   run_ofdm.sh            OFDM 실험 전체 (plot_ofdm.py로 그림)
+  run_fading_decomp.sh   페이딩 손실 / 상관 손실 분해 실험 (fading_diversity.py: 채널만 본 다이버시티)
 tests/test_deepsc.py     단위 테스트
 docs/                    실험 문서
 results/paper/           논문 재현 결과(JSON, 그림, 학습 곡선)

@@ -1,0 +1,345 @@
+{
+ "ckpt": "checkpoints/dsc_analog_ofdm_il.pt",
+ "constellation": null,
+ "rx_hard": false,
+ "digital": {
+  "avg_power": 1.0000001192092896,
+  "peak_to_avg_power": 10.34519100189209
+ },
+ "channel": "ofdm",
+ "channel_kwargs": {
+  "n_sc": 64,
+  "cp": 16,
+  "n_taps": 8,
+  "decay": 2.0,
+  "eq": "zf",
+  "mapping": "interleaved"
+ },
+ "snrs": [
+  -6.0,
+  -3.0,
+  0.0,
+  3.0,
+  6.0,
+  9.0,
+  12.0,
+  15.0,
+  18.0,
+  21.0,
+  24.0
+ ],
+ "symbols_per_sentence": 161.95993836671803,
+ "runtime_ms_per_sentence": 56.85368552803993,
+ "bleu": {
+  "-6.0": {
+   "1": 0.2456366835820026,
+   "2": 0.029672313741315272,
+   "3": 0.007208804800116016,
+   "4": 0.0019731208676621323
+  },
+  "-3.0": {
+   "1": 0.3097655567306153,
+   "2": 0.07686877524402769,
+   "3": 0.03405664017136809,
+   "4": 0.018378831413205492
+  },
+  "0.0": {
+   "1": 0.4123782775333418,
+   "2": 0.16898249907199486,
+   "3": 0.0953247119277998,
+   "4": 0.05807154880570502
+  },
+  "3.0": {
+   "1": 0.5345361346097748,
+   "2": 0.3010768410824875,
+   "3": 0.20185459932685634,
+   "4": 0.1402238178409758
+  },
+  "6.0": {
+   "1": 0.667323266660415,
+   "2": 0.4624146609559751,
+   "3": 0.3489893717875584,
+   "4": 0.2643803171028307
+  },
+  "9.0": {
+   "1": 0.7511217229442102,
+   "2": 0.5746466941237866,
+   "3": 0.46167436437235,
+   "4": 0.37083236272766207
+  },
+  "12.0": {
+   "1": 0.8021976103690079,
+   "2": 0.6475159116457805,
+   "3": 0.5399809236056468,
+   "4": 0.4495193141764803
+  },
+  "15.0": {
+   "1": 0.8332822858945228,
+   "2": 0.6954962505308419,
+   "3": 0.5946091639422535,
+   "4": 0.5077894302305302
+  },
+  "18.0": {
+   "1": 0.8494537110547826,
+   "2": 0.7202650513902609,
+   "3": 0.6238206896815123,
+   "4": 0.5394015948524096
+  },
+  "21.0": {
+   "1": 0.8560178493919072,
+   "2": 0.7297455024183228,
+   "3": 0.6346928906229238,
+   "4": 0.5510570127269104
+  },
+  "24.0": {
+   "1": 0.8596780360277712,
+   "2": 0.736839322292502,
+   "3": 0.6435835496419332,
+   "4": 0.5617685295262639
+  }
+ },
+ "samples": {
+  "-6.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "we too am a positive decision on up of what this debate ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i also express , the european union will have an opportunity to be more ambitious more coherent of you ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "however , it will be possible , as an end for a party on french which can be reached a vote against them ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "it must also be independent to be very much to comment on this report on the wto on thursday report ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in my view , that the honourable taxation will be reached , only , only a particular number of state aid ."
+   ]
+  ],
+  "-3.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "we should like three speed that within the honourable member states of europe ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "your president , the rapporteur of the european texts are defined to be set that we should be a position ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "it as you will be correctly , but are based for all that i hope , we must say the omissions on culture ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also think this type that the european parliament has clearly lay from the co operating on the same country ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in me about the commission is important possible , as a decision making system of it is a zero to the board ."
+   ]
+  ],
+  "0.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like you come for this proposal made general affairs on march ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i ask the least of council meets to ensure and the resolution of us to the policies of this house ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "at as you will also be aware , as a tool for a paper when decisions on capital , but with the right peace policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i see positive the report and the rights has been suspended to european parliament approves as regards you ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in our other points , the euro must be there as a council has been submitted to be paid to justice ."
+   ]
+  ],
+  "3.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "however will have to follow by making a few points on december ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the report in office for the concerns and regionalists he has expressed about the recommendations of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "are as you will also be aware , we ought for a commitment to carry on coherence in which with the council on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i thank the rapporteur that the rapporteur is a very late arrival because a shortcoming to make life point ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in tourism this , it is positive to support we have a candidate role of how a minority to the national approach ."
+   ]
+  ],
+  "6.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to make motions in a few moments contribution ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "mr president the president in office for the european experts and he has expressed about the governments of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will be aware , we are waiting for a commission communication on coherence , together with that i wish on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also remember the fact that the european parliament has actually turned from the altener which we have a constructive ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in regard we have that the honourable steps is look into a document as a system of progress referred to national sovereignty ."
+   ]
+  ],
+  "9.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by a general debate on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists you made about the progress of the commission ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but what you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been totally taken from the chechen committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the british works must look into a decision making system that needs to begin to business relationship ."
+   ]
+  ],
+  "12.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by making a general affairs on monday ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists he has expressed about the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also agree the fact that the european parliament has been adopted from the altener which committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must look into a decision making system that needs to pay national sovereignty ."
+   ]
+  ],
+  "15.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by making a general affairs on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists he has expressed about the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been totally from the altener committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must look into a decision making system that tax revenue seems to national sovereignty ."
+   ]
+  ],
+  "18.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by a general comment on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists he has expressed about the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been adopted from the altener committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must look into a decision making system that tax revenue seems to national sovereignty ."
+   ]
+  ],
+  "21.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by making a general light on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists he has expressed about the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been totally from the altener committee on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must look into a decision making system that needs to pay national sovereignty ."
+   ]
+  ],
+  "24.0": [
+   [
+    "i would like to finish off by making a general comment on interreg .",
+    "i would like to finish off by making a general affairs on interreg ."
+   ],
+   [
+    "i thank the president in office for the concerns and certainties he has expressed about the progress of the work .",
+    "i thank the president in office for the concerns and regionalists he has expressed about the progress of the work ."
+   ],
+   [
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy .",
+    "but as you will also be aware , we are waiting for a commission communication on coherence , together with the communication on development policy ."
+   ],
+   [
+    "i also deplore the fact that the european parliament has been totally excluded from the advisory committee on state aid .",
+    "i also ask the fact that the european parliament has been totally from the chechen tragedy on state aid ."
+   ],
+   [
+    "in them we say that the forthcoming igc must look into a decision making system that pays greater attention to national sovereignty .",
+    "in them we say that the forthcoming igc must look into a decision making system that tax revenue seems to national sovereignty ."
+   ]
+  ]
+ }
+}

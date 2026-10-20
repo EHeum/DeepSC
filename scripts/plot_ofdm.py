@@ -47,7 +47,45 @@ def main():
         fig.tight_layout(rect=(0, 0.17, 1, 1))
         fig.savefig(os.path.join(D, f"bleu{n}_ofdm.png"), dpi=130)
         plt.close(fig)
+    decomposition()
     print("figures written to", D)
+
+
+def decomposition():
+    """Fading vs correlation loss: one fixed model on every channel, and models fine-tuned per channel."""
+    panels = [
+        ("40-epoch AWGN model, no retraining", [
+            ("AWGN", "awgnmodel_on_awgn", "#898781", ":"),
+            ("i.i.d. Rayleigh", "awgnmodel_on_riid", SERIES[3], "-"),
+            ("OFDM interleaved", "analog_awgn_model_il", SERIES[1], "-"),
+            ("OFDM contiguous", "analog_awgn_model", SERIES[0], "-"),
+            ("block Rayleigh", "awgnmodel_on_block", SERIES[6], "-"),
+        ]),
+        ("fine-tuned 12 epochs on each channel", [
+            ("AWGN (fine-tuned 15 epochs)", "../digital/analog_ft", "#898781", ":"),
+            ("i.i.d. Rayleigh", "analog_riid", SERIES[3], "-"),
+            ("OFDM interleaved", "analog_ofdm_il", SERIES[1], "-"),
+            ("OFDM contiguous", "analog_ofdm", SERIES[0], "-"),
+        ]),
+    ]
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    for ax, (title, lines) in zip(axes, panels):
+        for i, (name, f, color, ls) in enumerate(lines):
+            d = load(os.path.join(D, f + ".json"))
+            if not d:
+                continue
+            x, y = curve(d["bleu"], 1)
+            ax.plot(x, y, color=color, ls=ls, marker=MARKERS[i], label=name)
+        ax.set_title(title)
+        ax.set_xlabel("average SNR per symbol (dB)")
+        ax.set_xticks(range(-6, 25, 3))
+        ax.set_ylim(-0.02, 1.02)
+        ax.legend(fontsize=8, loc="lower right")
+    axes[0].set_ylabel("BLEU (1-gram)")
+    fig.suptitle("Analog DeepSC: fading loss (AWGN -> i.i.d. Rayleigh) and the effect of correlation")
+    fig.tight_layout()
+    fig.savefig(os.path.join(D, "fading_vs_correlation.png"), dpi=130)
+    plt.close(fig)
 
 
 if __name__ == "__main__":
