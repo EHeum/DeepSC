@@ -1,0 +1,30 @@
+{
+ "i.i.d. Rayleigh": {
+  "corr_adjacent_symbols": 0.00039298011688515544,
+  "effective_diversity": 7.99294900894165,
+  "p_word_mean_gain_below_0.1": 4.999999873689376e-06,
+  "p_word_mean_gain_below_0.3": 0.0033400000538676977,
+  "p_symbol_gain_below_0.1": 0.09555874764919281
+ },
+ "OFDM interleaved": {
+  "corr_adjacent_symbols": 0.061248358339071274,
+  "effective_diversity": 3.9163095951080322,
+  "p_word_mean_gain_below_0.1": 5.999999848427251e-05,
+  "p_word_mean_gain_below_0.3": 0.02032499946653843,
+  "p_symbol_gain_below_0.1": 0.09520874917507172
+ },
+ "OFDM contiguous": {
+  "corr_adjacent_symbols": 0.9745227098464966,
+  "effective_diversity": 1.2345914840698242,
+  "p_word_mean_gain_below_0.1": 0.03536500036716461,
+  "p_word_mean_gain_below_0.3": 0.19324499368667603,
+  "p_symbol_gain_below_0.1": 0.0942387506365776
+ },
+ "block Rayleigh": {
+  "corr_adjacent_symbols": 0.9999998807907104,
+  "effective_diversity": 0.9989379048347473,
+  "p_word_mean_gain_below_0.1": 0.09475500136613846,
+  "p_word_mean_gain_below_0.3": 0.25898998975753784,
+  "p_symbol_gain_below_0.1": 0.09475500136613846
+ }
+}

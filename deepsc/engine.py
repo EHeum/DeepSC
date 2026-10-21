@@ -1,5 +1,6 @@
 """Training (Algorithms 1-4) and evaluation loops for DeepSC."""
 import math
+import os
 import random
 import time
 
@@ -19,7 +20,20 @@ def build_model(vocab, cfg):
                   symbols_per_word=cfg.get("symbols_per_word", 8), dropout=cfg.get("dropout", 0.1),
                   rx_positional=cfg.get("rx_positional", True), norm_first=cfg.get("norm_first", False),
                   constellation=cfg.get("constellation"), quant_temp=cfg.get("quant_temp", 0.5),
-                  quant_ste=cfg.get("quant_ste", "soft"), rx_hard=cfg.get("rx_hard", False))
+                  quant_ste=cfg.get("quant_ste", "soft"), rx_hard=cfg.get("rx_hard", False),
+                  csi_rx=cfg.get("csi_rx", False))
+
+
+def load_weights(model, state):
+    """Load weights, widening the channel decoder's first layer with zero columns when the new
+    model takes extra (CSI) inputs, so it starts out computing exactly what the old one did."""
+    key = "channel_decoder.0.weight"
+    own = model.state_dict()[key]
+    if state[key].shape != own.shape:
+        w = torch.zeros_like(own)
+        w[:, : state[key].shape[1]] = state[key]
+        state = {**state, key: w}
+    model.load_state_dict(state)
 
 
 def save_checkpoint(path, model, mine, cfg, history):
@@ -30,7 +44,7 @@ def load_checkpoint(path, vocab, map_location="cpu"):
     ck = torch.load(path, map_location=map_location)
     model = build_model(vocab, ck["cfg"])
     model.load_state_dict(ck["model"])
-    mine = MINE()
+    mine = MINE(out_act=ck["cfg"].get("mine_out", "linear"))
     mine.load_state_dict(ck["mine"])
     return model, mine, ck
 
@@ -51,11 +65,14 @@ def set_trainable(model, freeze):
             p.requires_grad_(False)
 
 
-def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
+def train(model, mine, train_sents, test_sents, vocab, cfg, log=print, state_path=None):
     """Algorithm 1: alternate MI-model training (Alg. 2) and whole-network training (Alg. 3).
 
     cfg keys: channel, snr_min, snr_max, epochs, batch_size, lr, mine_lr, mi_lambda,
               freeze, unfreeze_epoch, warmup_steps, channel_kwargs
+
+    With ``state_path`` the full training state is written there after every epoch and,
+    if the file already exists, training resumes from it (e.g. after a machine restart).
     """
     dev = next(model.parameters()).device
     ds = SentenceDataset(train_sents, vocab)
@@ -72,8 +89,21 @@ def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
     opt = make_opt()
     opt_mine = torch.optim.Adam(mine.parameters(), lr=cfg["mine_lr"])
     warm = cfg.get("warmup_steps", 0)
-    step, history = 0, []
-    for epoch in range(1, cfg["epochs"] + 1):
+    step, history, start = 0, [], 1
+    if state_path and os.path.exists(state_path):
+        st = torch.load(state_path, map_location=dev)
+        model.load_state_dict(st["model"])
+        mine.load_state_dict(st["mine"])
+        step, history, start = st["step"], st["history"], st["epoch"] + 1
+        if cfg.get("unfreeze_epoch") and start > cfg["unfreeze_epoch"]:
+            set_trainable(model, "none")
+            opt = make_opt()
+        opt.load_state_dict(st["opt"])
+        opt_mine.load_state_dict(st["opt_mine"])
+        random.setstate(st["py_rng"])
+        torch.set_rng_state(st["torch_rng"])
+        log(f"resumed from {state_path} after epoch {st['epoch']}")
+    for epoch in range(start, cfg["epochs"] + 1):
         if cfg.get("unfreeze_epoch") and epoch == cfg["unfreeze_epoch"]:
             set_trainable(model, "none")  # Alg. 4: finally fine-tune the whole network
             opt = make_opt()
@@ -111,6 +141,12 @@ def train(model, mine, train_sents, test_sents, vocab, cfg, log=print):
         rec = {"epoch": epoch, "train_ce": tot_ce / n, "mi_bits": tot_mi / n / math.log(2),
                "test_ce": test_ce, "sec": time.time() - t0}
         history.append(rec)
+        if state_path:
+            tmp = state_path + ".tmp"
+            torch.save({"model": model.state_dict(), "mine": mine.state_dict(), "opt": opt.state_dict(),
+                        "opt_mine": opt_mine.state_dict(), "step": step, "epoch": epoch, "history": history,
+                        "py_rng": random.getstate(), "torch_rng": torch.get_rng_state()}, tmp)
+            os.replace(tmp, state_path)
         log(f"epoch {epoch:3d} | train CE {rec['train_ce']:.4f} | test CE@{cfg.get('eval_snr', 6.0)}dB "
             f"{test_ce:.4f} | MI {rec['mi_bits']:.3f} bit/sym | {rec['sec']:.0f}s")
     return history

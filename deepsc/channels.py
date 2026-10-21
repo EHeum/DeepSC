@@ -5,6 +5,12 @@ transmitter can be trained end-to-end through them. For the fading channels
 perfect CSI is assumed (as in Sec. V) and the receiver applies zero-forcing
 equalisation y / h. The fading coefficient is constant over one sentence
 (block fading, coherence time = M symbols).
+
+``ofdm`` puts the symbols on the subcarriers of CP-OFDM and sends them through a
+frequency-selective multipath channel (see its docstring).
+
+With ``return_csi=True`` every channel also returns the per-symbol power gain |h|^2
+(B, N), which a CSI-aware receiver can use as a reliability measure.
 """
 import math
 
@@ -33,31 +39,107 @@ def _noise(x, snr_db):
     return std * torch.complex(torch.randn_like(x.real), torch.randn_like(x.real))
 
 
-def awgn(x, snr_db):
-    return x + _noise(x, snr_db)
+def _equalise(h, y, snr_db, eq):
+    if eq == "mmse":
+        return y * h.conj() / (h.abs() ** 2 + 10 ** (-snr_db / 10))
+    return y / h
+
+
+def _out(y, gain, return_csi):
+    return (y, gain) if return_csi else y
+
+
+def awgn(x, snr_db, return_csi=False):
+    return _out(x + _noise(x, snr_db), torch.ones_like(x.real), return_csi)
 
 
 def _cn(shape, device):
     return torch.complex(torch.randn(shape, device=device), torch.randn(shape, device=device)) / math.sqrt(2)
 
 
-def rayleigh(x, snr_db):
+def rayleigh(x, snr_db, eq="zf", return_csi=False):
     h = _cn((x.shape[0], 1), x.device)  # h ~ CN(0, 1), one per sentence
-    return (h * x + _noise(x, snr_db)) / h
+    y = _equalise(h, h * x + _noise(x, snr_db), snr_db, eq)
+    return _out(y, (h.abs() ** 2).expand_as(x.real), return_csi)
 
 
-def rician(x, snr_db, k=1.0):
+def rayleigh_iid(x, snr_db, eq="zf", return_csi=False):
+    """Fast (i.i.d.) Rayleigh fading: every symbol gets its own h ~ CN(0, 1), ZF/MMSE, perfect CSI.
+
+    Each OFDM subcarrier gain is also CN(0, 1), so this channel has the same per-symbol statistics
+    as ``ofdm`` and differs only in that the gains are uncorrelated.
+    """
+    h = _cn(x.shape, x.device)
+    return _out(_equalise(h, h * x + _noise(x, snr_db), snr_db, eq), h.abs() ** 2, return_csi)
+
+
+def rician(x, snr_db, k=1.0, eq="zf", return_csi=False):
     h = math.sqrt(k / (k + 1)) + math.sqrt(1 / (k + 1)) * _cn((x.shape[0], 1), x.device)
-    return (h * x + _noise(x, snr_db)) / h
+    y = _equalise(h, h * x + _noise(x, snr_db), snr_db, eq)
+    return _out(y, (h.abs() ** 2).expand_as(x.real), return_csi)
 
 
-def erasure(x, snr_db, p=0.1):
+def erasure(x, snr_db, p=0.1, return_csi=False):
     """AWGN followed by symbol erasures with probability p (erased -> 0)."""
     keep = (torch.rand_like(x.real) >= p).to(x.real.dtype)
-    return awgn(x, snr_db) * keep
+    return _out(awgn(x, snr_db) * keep, keep, return_csi)
 
 
-CHANNELS = {"awgn": awgn, "rayleigh": rayleigh, "rician": rician, "erasure": erasure}
+def _bit_reversal(n):
+    bits = int(math.log2(n))
+    assert 2 ** bits == n, "number of subcarriers must be a power of two"
+    return [int(format(i, f"0{bits}b")[::-1], 2) for i in range(n)]
+
+
+def multipath_taps(batch, n_taps=8, decay=2.0, device="cpu"):
+    """Rayleigh taps with an exponential power-delay profile, E[sum |h_l|^2] = 1."""
+    pdp = torch.exp(-torch.arange(n_taps, dtype=torch.float32, device=device) / decay)
+    pdp = pdp / pdp.sum()
+    return _cn((batch, n_taps), device) * pdp.sqrt()
+
+
+def ofdm(x, snr_db, n_sc=64, cp=16, n_taps=8, decay=2.0, eq="zf", mapping="contiguous", taps=None,
+         return_csi=False):
+    """CP-OFDM over a multipath channel, simulated in the time domain.
+
+    x (B, N) complex -> equalised subcarrier symbols (B, N), in the same order.
+
+    * The N symbols fill ceil(N / n_sc) OFDM symbols of n_sc subcarriers (unused ones carry 0).
+      ``mapping="contiguous"`` puts consecutive symbols (e.g. one word's) on adjacent subcarriers,
+      ``"interleaved"`` spreads them with a bit-reversal permutation (frequency diversity).
+    * IFFT (unitary) + cyclic prefix, linear convolution with ``n_taps`` Rayleigh taps
+      (exponential power-delay profile, constant over the sentence), AWGN in the time domain,
+      CP removal + FFT. With n_taps - 1 <= cp there is no inter-symbol interference, so each
+      subcarrier k sees Y = H_k X + N, N ~ CN(0, N0) and the average subcarrier SNR is 1 / N0.
+    * Perfect CSI; ``eq="zf"`` gives Y / H_k, ``eq="mmse"`` gives conj(H_k) Y / (|H_k|^2 + N0).
+    """
+    assert n_taps - 1 <= cp, "the cyclic prefix must cover the channel delay spread"
+    b, n = x.shape
+    n_ofdm = -(-n // n_sc)
+    grid = torch.cat([x, x.new_zeros(b, n_ofdm * n_sc - n)], 1).reshape(b, n_ofdm, n_sc)
+    perm = None
+    if mapping == "interleaved":
+        perm = torch.tensor(_bit_reversal(n_sc), device=x.device)
+        g = torch.empty_like(grid)
+        g[..., perm] = grid
+        grid = g
+    s = torch.fft.ifft(grid, norm="ortho")
+    s = torch.cat([s[..., -cp:], s], -1).reshape(b, -1)  # add CP, serialise
+    h = multipath_taps(b, n_taps, decay, x.device) if taps is None else taps
+    r = h[:, :1] * s
+    for tap in range(1, n_taps):
+        r = r + h[:, tap:tap + 1] * torch.cat([s.new_zeros(b, tap), s[:, :-tap]], 1)
+    r = r + _noise(r, snr_db)
+    y = torch.fft.fft(r.reshape(b, n_ofdm, n_sc + cp)[..., cp:], norm="ortho")
+    hk = torch.fft.fft(h, n=n_sc)[:, None, :]  # frequency response per subcarrier
+    y = _equalise(hk, y, snr_db, eq)
+    gain = (hk.abs() ** 2).expand(b, n_ofdm, n_sc)
+    if perm is not None:
+        y, gain = y[..., perm], gain[..., perm]
+    return _out(y.reshape(b, -1)[:, :n], gain.reshape(b, -1)[:, :n], return_csi)
+
+
+CHANNELS = {"awgn": awgn, "ofdm": ofdm, "rayleigh_iid": rayleigh_iid, "rayleigh": rayleigh, "rician": rician, "erasure": erasure}
 
 
 def apply_channel(name, x, snr_db, **kw):

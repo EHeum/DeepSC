@@ -17,6 +17,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/europarl_en.json")
     ap.add_argument("--channels", default="awgn,rayleigh")
+    ap.add_argument("--ofdm-map", default="contiguous", choices=["contiguous", "interleaved"])
     ap.add_argument("--snrs", default="0,3,6,9,12,15,18")
     ap.add_argument("--n-test", type=int, default=500)
     ap.add_argument("--batch", type=int, default=100)
@@ -40,7 +41,7 @@ def main():
     for ch in a.channels.split(","):
         res[ch] = {}
         for name, src, code, m in schemes:
-            sysm = TraditionalSystem(src, code(), m, seed=0)
+            sysm = TraditionalSystem(src, code(), m, seed=0, ofdm_mapping=a.ofdm_map)
             res[ch][name] = {"bleu": {}, "samples": {}}
             for snr in snrs:
                 t, hyp, nsym = time.time(), [], []

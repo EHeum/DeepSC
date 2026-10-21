@@ -1,0 +1,7 @@
+MINE ReLU output     SNR  0.0 dB  I(X;Y) = 0.991 bit/symbol (Gaussian capacity 1.000)
+MINE ReLU output     SNR  3.0 dB  I(X;Y) = 1.569 bit/symbol (Gaussian capacity 1.583)
+MINE ReLU output     SNR  6.0 dB  I(X;Y) = 2.290 bit/symbol (Gaussian capacity 2.316)
+MINE ReLU output     SNR  9.0 dB  I(X;Y) = 3.106 bit/symbol (Gaussian capacity 3.161)
+MINE ReLU output     SNR 12.0 dB  I(X;Y) = 3.956 bit/symbol (Gaussian capacity 4.075)
+MINE ReLU output     SNR 15.0 dB  I(X;Y) = 4.839 bit/symbol (Gaussian capacity 5.028)
+MINE ReLU output     SNR 18.0 dB  I(X;Y) = 5.702 bit/symbol (Gaussian capacity 6.002)

@@ -10,14 +10,23 @@ import torch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from deepsc.data import load_corpus  # noqa: E402
-from deepsc.engine import build_model, save_checkpoint, train  # noqa: E402
+from deepsc.engine import build_model, load_weights, save_checkpoint, train  # noqa: E402
 from deepsc.models import MINE  # noqa: E402
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/europarl_en.json")
-    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rician", "erasure"])
+    ap.add_argument("--channel", default="awgn", choices=["awgn", "rayleigh", "rayleigh_iid", "rician", "erasure", "ofdm"])
+    ap.add_argument("--ofdm-sc", type=int, default=64, help="OFDM subcarriers")
+    ap.add_argument("--ofdm-cp", type=int, default=16, help="cyclic prefix length")
+    ap.add_argument("--ofdm-taps", type=int, default=8, help="multipath taps")
+    ap.add_argument("--ofdm-decay", type=float, default=2.0, help="power-delay profile decay (taps)")
+    ap.add_argument("--ofdm-eq", default="zf", choices=["zf", "mmse"])
+    ap.add_argument("--eq", default=None, choices=["zf", "mmse"],
+                    help="equaliser for rayleigh / rayleigh_iid / rician / ofdm (overrides --ofdm-eq)")
+    ap.add_argument("--csi-rx", action="store_true", help="give the channel decoder each symbol's SNR")
+    ap.add_argument("--ofdm-map", default="contiguous", choices=["contiguous", "interleaved"])
     ap.add_argument("--erasure-p", type=float, default=0.1)
     ap.add_argument("--rician-k", type=float, default=1.0)
     ap.add_argument("--snr-min", type=float, default=0.0)
@@ -27,6 +36,8 @@ def main():
     ap.add_argument("--batch-size", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--mine-lr", type=float, default=1e-3)
+    ap.add_argument("--mine-out", default="linear", choices=["linear", "relu"],
+                    help="activation of the MI model's output layer (Table I: ReLU)")
     ap.add_argument("--mi-lambda", type=float, default=0.01, help="lambda of eq. (14); 0 = no MI term")
     ap.add_argument("--warmup-steps", type=int, default=200)
     ap.add_argument("--symbols-per-word", type=int, default=8)
@@ -55,35 +66,42 @@ def main():
     if a.max_train:
         train_s = train_s[: a.max_train]
 
-    kw = {"erasure": {"p": a.erasure_p}, "rician": {"k": a.rician_k}}.get(a.channel, {})
+    eq = a.eq or (a.ofdm_eq if a.channel == "ofdm" else "zf")
+    kw = {"erasure": {"p": a.erasure_p}, "rician": {"k": a.rician_k, "eq": eq},
+          "rayleigh": {"eq": eq}, "rayleigh_iid": {"eq": eq},
+          "ofdm": {"n_sc": a.ofdm_sc, "cp": a.ofdm_cp, "n_taps": a.ofdm_taps, "decay": a.ofdm_decay,
+                   "eq": eq, "mapping": a.ofdm_map}}.get(a.channel, {})
     cfg = {"channel": a.channel, "channel_kwargs": kw, "snr_min": a.snr_min, "snr_max": a.snr_max,
            "eval_snr": a.eval_snr, "epochs": a.epochs, "batch_size": a.batch_size, "lr": a.lr,
            "mine_lr": a.mine_lr, "mi_lambda": a.mi_lambda, "warmup_steps": a.warmup_steps,
            "symbols_per_word": a.symbols_per_word, "freeze": a.freeze, "unfreeze_epoch": a.unfreeze_epoch,
            "init": a.init, "seed": a.seed, "rx_positional": not a.no_rx_pos,
            "constellation": a.constellation, "quant_temp": a.quant_temp, "quant_ste": a.quant_ste,
-           "rx_hard": a.rx_hard}
+           "rx_hard": a.rx_hard, "mine_out": a.mine_out, "csi_rx": a.csi_rx}
     if a.init:
         ck = torch.load(a.init, map_location="cpu")
         cfg["symbols_per_word"] = ck["cfg"]["symbols_per_word"]
         cfg["rx_positional"] = ck["cfg"].get("rx_positional", True)
         # the architecture may change (e.g. analog -> constellation); the weights are identical
-        model, mine = build_model(vocab, cfg), MINE()
-        model.load_state_dict(ck["model"])
+        model, mine = build_model(vocab, cfg), MINE(out_act=a.mine_out)
+        load_weights(model, ck["model"])
         mine.load_state_dict(ck["mine"])
     else:
-        model, mine = build_model(vocab, cfg), MINE()
+        model, mine = build_model(vocab, cfg), MINE(out_act=a.mine_out)
     dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model, mine = model.to(dev), mine.to(dev)
     print(json.dumps(cfg))
     print(f"vocab={len(vocab)} train={len(train_s)} test={len(test_s)} "
           f"params={sum(p.numel() for p in model.parameters()):,}")
 
-    history = train(model, mine, train_s, test_s, vocab, cfg, log=lambda s: print(s, flush=True))
+    state_path = os.path.splitext(a.out)[0] + ".state.pt"  # per-epoch state; rerun the same command to resume
+    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+    history = train(model, mine, train_s, test_s, vocab, cfg, log=lambda s: print(s, flush=True), state_path=state_path)
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     save_checkpoint(a.out, model.cpu(), mine.cpu(), cfg, history)
     with open(os.path.splitext(a.out)[0] + "_history.json", "w") as f:
         json.dump({"cfg": cfg, "history": history}, f, indent=1)
+    os.remove(state_path)
 
 
 if __name__ == "__main__":

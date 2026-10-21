@@ -35,8 +35,10 @@ class PositionalEncoding(nn.Module):
 class DeepSC(nn.Module):
     def __init__(self, vocab_size, pad_idx, d_model=128, n_heads=8, n_layers=3, d_ff=512,
                  symbols_per_word=8, dropout=0.1, rx_positional=True, norm_first=False,
-                 constellation=None, quant_temp=0.5, quant_ste="soft", rx_hard=False):
+                 constellation=None, quant_temp=0.5, quant_ste="soft", rx_hard=False, csi_rx=False):
         super().__init__()
+        # CSI-aware receiver: the channel decoder also gets each symbol's instantaneous SNR |h|^2 / N0
+        self.csi_rx = csi_rx
         # digital (constellation constrained) channel input, DeepJSCC-Q style; None = analog DeepSC
         self.mapper = ConstellationMapper(constellation, quant_temp, quant_ste) if constellation else None
         self.rx_hard = rx_hard  # hard symbol decisions at the receiver (needs a constellation)
@@ -57,7 +59,7 @@ class DeepSC(nn.Module):
             nn.Linear(d_model, 256), nn.ReLU(), nn.Linear(256, 2 * symbols_per_word))
         # ---- receiver: channel decoder C_delta^-1 (Dense 256 ReLU, Dense 128 ReLU) ----
         self.channel_decoder = nn.Sequential(
-            nn.Linear(2 * symbols_per_word, 256), nn.ReLU(), nn.Linear(256, d_model), nn.ReLU())
+            nn.Linear((3 if csi_rx else 2) * symbols_per_word, 256), nn.ReLU(), nn.Linear(256, d_model), nn.ReLU())
         # ---- receiver: semantic decoder S_chi^-1 ----
         self.tgt_embedding = nn.Embedding(vocab_size, d_model, padding_idx=pad_idx)
         dec = nn.TransformerDecoderLayer(d_model, n_heads, d_ff, dropout, batch_first=True,
@@ -95,10 +97,21 @@ class DeepSC(nn.Module):
             return y
         return y + (self.mapper.detect(y) - y).detach()  # straight-through when training
 
-    def receive(self, y, src_pad_mask):
+    def through_channel(self, x, sym_mask, channel, snr_db, **ch_kw):
+        """Channel + (hard) detection -> equalised symbols y and, for a CSI-aware receiver, a
+        per-symbol reliability feature log10(|h|^2 * SNR) (instantaneous SNR in units of 10 dB)."""
+        if not self.csi_rx:
+            return self.detect(apply_channel(channel, x, snr_db, **ch_kw)) * sym_mask, None
+        y, gain = apply_channel(channel, x, snr_db, return_csi=True, **ch_kw)
+        feat = torch.log10(gain * 10 ** (snr_db / 10) + 1e-6).clamp(-3.0, 5.0)
+        return self.detect(y) * sym_mask, feat * sym_mask
+
+    def receive(self, y, src_pad_mask, csi=None):
         """Channel decoder: complex symbols (B, L*N) -> M_hat (B, L, V)."""
         b = y.shape[0]
         z = torch.stack([y.real, y.imag], -1).reshape(b, -1, 2 * self.n_sym)
+        if self.csi_rx:
+            z = torch.cat([z, csi.reshape(b, -1, self.n_sym)], -1)
         m = self.channel_decoder(z)
         # The receiver knows which word slot every block of N symbols belongs to,
         # so the slot index is re-injected for free instead of being transmitted.
@@ -115,18 +128,18 @@ class DeepSC(nn.Module):
 
     def forward(self, src, tgt_in, channel="awgn", snr_db=10.0, **ch_kw):
         x, sym_mask = self.transmit(src)
-        y = self.detect(apply_channel(channel, x, snr_db, **ch_kw)) * sym_mask
+        y, csi = self.through_channel(x, sym_mask, channel, snr_db, **ch_kw)
         pad_mask = src.eq(self.pad_idx)
-        memory = self.receive(y, pad_mask)
+        memory = self.receive(y, pad_mask, csi)
         logits = self.decode_step(memory, pad_mask, tgt_in)
         return logits, x, y, sym_mask
 
     @torch.no_grad()
     def greedy_decode(self, src, start_idx, end_idx, channel="awgn", snr_db=10.0, max_len=None, **ch_kw):
         x, sym_mask = self.transmit(src)
-        y = self.detect(apply_channel(channel, x, snr_db, **ch_kw)) * sym_mask
+        y, csi = self.through_channel(x, sym_mask, channel, snr_db, **ch_kw)
         pad_mask = src.eq(self.pad_idx)
-        memory = self.receive(y, pad_mask)
+        memory = self.receive(y, pad_mask, csi)
         max_len = max_len or src.size(1) + 2
         out = torch.full((src.size(0), 1), start_idx, dtype=torch.long, device=src.device)
         done = torch.zeros(src.size(0), dtype=torch.bool, device=src.device)
@@ -146,11 +159,13 @@ class MINE(nn.Module):
     Input: one transmitted / received complex symbol pair (Re x, Im x, Re y, Im y).
     """
 
-    def __init__(self, in_dim=4, hidden=256):
+    def __init__(self, in_dim=4, hidden=256, out_act="linear"):
         super().__init__()
+        # Table I puts a ReLU on the last layer; "linear" (default) lets T take negative values too
+        last = [nn.ReLU()] if out_act == "relu" else []
         self.net = nn.Sequential(nn.Linear(in_dim, hidden), nn.ReLU(),
                                  nn.Linear(hidden, hidden), nn.ReLU(),
-                                 nn.Linear(hidden, 1))
+                                 nn.Linear(hidden, 1), *last)
 
     def forward(self, x, y):
         return self.net(torch.cat([x, y], -1))

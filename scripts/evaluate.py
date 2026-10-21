@@ -45,6 +45,9 @@ def main():
     ap.add_argument("--channel", default=None, help="test channel (default: training channel)")
     ap.add_argument("--snrs", default="0,3,6,9,12,15,18")
     ap.add_argument("--erasure-p", type=float, default=None)
+    ap.add_argument("--ofdm-map", default=None, choices=["contiguous", "interleaved"], help="override OFDM mapping")
+    ap.add_argument("--ofdm-eq", default=None, choices=["zf", "mmse"], help="override OFDM equaliser")
+    ap.add_argument("--eq", default=None, choices=["zf", "mmse"], help="override the equaliser of a fading channel")
     ap.add_argument("--n-test", type=int, default=0)
     ap.add_argument("--rx-hard", action="store_true", help="force hard symbol decisions at the receiver")
     ap.add_argument("--threads", type=int, default=0)
@@ -66,6 +69,13 @@ def main():
     kw = dict(ck["cfg"].get("channel_kwargs", {})) if ch == ck["cfg"]["channel"] else {}
     if a.erasure_p is not None:
         kw["p"] = a.erasure_p
+    if a.eq and ch in ("rayleigh", "rayleigh_iid", "rician", "ofdm"):
+        kw["eq"] = a.eq
+    if ch == "ofdm":
+        if a.ofdm_map:
+            kw["mapping"] = a.ofdm_map
+        if a.ofdm_eq:
+            kw["eq"] = a.ofdm_eq
     snrs = [float(s) for s in a.snrs.split(",")]
 
     res = evaluate_bleu(model, test, vocab, ch, snrs, **kw)

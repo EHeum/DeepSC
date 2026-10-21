@@ -129,12 +129,30 @@ def _lse(a, axis):
 
 
 # ================================ channel ================================== #
-def channel(x, snr_db, kind, rng):
-    """x: complex symbols of one sentence -> equalised y, per-symbol noise variance."""
+def channel(x, snr_db, kind, rng, n_sc=64, n_taps=8, decay=2.0, mapping="contiguous"):
+    """x: complex symbols of one sentence -> equalised y, per-symbol noise variance.
+
+    kind "ofdm": the frequency-domain equivalent of ``deepsc.channels.ofdm`` (CP longer than the
+    delay spread, perfect CSI, zero forcing): subcarrier k sees H_k X + N. ``mapping="interleaved"``
+    uses the same bit-reversal subcarrier permutation as the DeepSC channel.
+    """
     n0 = 10 ** (-snr_db / 10)  # E|n|^2 for unit-power symbols
     n = np.sqrt(n0 / 2) * (rng.standard_normal(x.shape) + 1j * rng.standard_normal(x.shape))
     if kind == "awgn":
         return x + n, np.full(x.shape, n0)
+    if kind == "rayleigh_iid":
+        h = (rng.standard_normal(x.shape) + 1j * rng.standard_normal(x.shape)) / np.sqrt(2)
+        return (h * x + n) / h, n0 / np.abs(h) ** 2
+    if kind == "ofdm":
+        pdp = np.exp(-np.arange(n_taps) / decay)
+        pdp /= pdp.sum()
+        h = (rng.standard_normal(n_taps) + 1j * rng.standard_normal(n_taps)) / np.sqrt(2) * np.sqrt(pdp)
+        sc = np.arange(len(x)) % n_sc
+        if mapping == "interleaved":
+            bits = int(np.log2(n_sc))
+            sc = np.array([int(format(i, f"0{bits}b")[::-1], 2) for i in range(n_sc)])[sc]
+        hk = np.fft.fft(h, n_sc)[sc]
+        return (hk * x + n) / hk, n0 / np.abs(hk) ** 2
     h = (rng.standard_normal() + 1j * rng.standard_normal()) / np.sqrt(2)
     return (h * x + n) / h, np.full(x.shape, n0 / abs(h) ** 2)
 
@@ -277,7 +295,8 @@ class TurboCode:
 class TraditionalSystem:
     """source coder + channel coder + QAM; transmits a batch of sentences."""
 
-    def __init__(self, source, channel_code, qam_order=64, seed=0):
+    def __init__(self, source, channel_code, qam_order=64, seed=0, ofdm_mapping="contiguous"):
+        self.ofdm_mapping = ofdm_mapping
         self.source = source
         self.code = channel_code
         self.qam = QAM(qam_order)
@@ -292,7 +311,7 @@ class TraditionalSystem:
                 cw = self.code.encode(raw)
                 cbits = bytes_to_bits(cw, len(cw) * 8)
                 x = self.qam.modulate(cbits)
-                y, _ = channel(x, snr_db, kind, self.rng)
+                y, _ = channel(x, snr_db, kind, self.rng, mapping=self.ofdm_mapping)
                 rb = bits_to_bytes(self.qam.demod_hard(y)[: len(cbits)])
                 dec = self.code.decode(rb, len(raw))
                 out.append(self.source.decode(bytes_to_bits(dec, len(m))))
@@ -304,7 +323,7 @@ class TraditionalSystem:
         llrs, n_sym = [], []
         for c in coded:
             x = self.qam.modulate(c)
-            y, nv = channel(x, snr_db, kind, self.rng)
+            y, nv = channel(x, snr_db, kind, self.rng, mapping=self.ofdm_mapping)
             llrs.append(self.qam.demod_llr(y, nv)[: len(c)])
             n_sym.append(len(x))
         dec = self.code.decode(llrs, [len(m) for m in msgs], perm)
